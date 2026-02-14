@@ -3,6 +3,7 @@ package postgresql
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"time"
 
 	"github.com/Sheridanlk/Music-Service/internal/domain/models"
@@ -13,10 +14,17 @@ type Storage struct {
 	pool *pgxpool.Pool
 }
 
-func New(connString string) (*Storage, error) {
+func New(host, userName, password, dbName string, port int) (*Storage, error) {
 	const op = "storage.postgresql.New"
 
-	cfg, err := pgxpool.ParseConfig(connString)
+	connString := &url.URL{
+		Scheme: "postgres",
+		User:   url.UserPassword(userName, password),
+		Host:   fmt.Sprintf("%s:%d", host, port),
+		Path:   dbName,
+	}
+
+	cfg, err := pgxpool.ParseConfig(connString.String())
 	if err != nil {
 		return nil, fmt.Errorf("%s: can't parse connection string: %w", op, err)
 	}
