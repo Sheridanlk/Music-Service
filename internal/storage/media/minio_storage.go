@@ -9,17 +9,13 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/Sheridanlk/Music-Service/internal/storage"
 	"github.com/minio/minio-go/v7"
 )
 
 type MinioStorage struct {
 	minioclient *minio.Client
 	log         *slog.Logger
-}
-
-type ByteRannge struct {
-	Start int64
-	End   int64
 }
 
 func New(log *slog.Logger, client *minio.Client) *MinioStorage {
@@ -49,7 +45,7 @@ func (s *MinioStorage) Upload(ctx context.Context, bucketName, objectName string
 	return nil
 }
 
-func (s *MinioStorage) Download(ctx context.Context, bucketName, objectName string, byteRange *ByteRannge) (io.ReadCloser, string, error) {
+func (s *MinioStorage) Download(ctx context.Context, bucketName, objectName string, byteRange *storage.ByteRannge) (io.ReadCloser, string, error) {
 	const op = "storage.minio.Download"
 
 	opts := minio.GetObjectOptions{}
