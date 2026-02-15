@@ -56,21 +56,51 @@ func (s *Storage) Close() {
 	s.pool.Close()
 }
 
-func (s *Storage) Create(ctx context.Context, title, originBucket, originKey string) (int64, error) {
-	const op = "storage.postgresql.Create"
+func (s *Storage) Save(ctx context.Context, title, originBucket string) (int64, error) {
+	const op = "storage.postgresql.Save"
 
 	var id int64
 
 	err := s.pool.QueryRow(
 		ctx,
-		`INSERT INTO tracks (title, origin_bucket, origin_key) VALUES ($1, $2, $3) RETURNING id`,
-		title, originBucket, originKey,
+		`INSERT INTO tracks (title, origin_bucket) VALUES ($1, $2, $3) RETURNING id`,
+		title, originBucket,
 	).Scan(&id)
 	if err != nil {
 		return 0, fmt.Errorf("%s: can't insert track: %w", op, err)
 	}
 
 	return id, nil
+}
+
+func (s *Storage) SetOrginKey(ctx context.Context, id int64, originKey string) error {
+	const op = "storage.postgresql.SetOrginKey"
+
+	_, err := s.pool.Exec(
+		ctx,
+		`UPDATE tracks SET origin_key = $1 WHERE id = $2`,
+		originKey, id,
+	)
+	if err != nil {
+		return fmt.Errorf("%s: can't set origin key: %w", op, err)
+	}
+
+	return nil
+}
+
+func (s *Storage) SetHLS(ctx context.Context, id int64, hlsBucket string, hlsPrefix string) error {
+	const op = "storage.postgresql.SetHLS"
+
+	_, err := s.pool.Exec(
+		ctx,
+		`UPDATE tracks SET hls_bucket = $1, hls_prefix = $2 WHERE id = $3`,
+		hlsBucket, hlsPrefix, id,
+	)
+	if err != nil {
+		return fmt.Errorf("%s: can't set hls: %w", op, err)
+	}
+
+	return nil
 }
 
 func (s *Storage) Get(ctx context.Context, id int64) (models.Track, error) {

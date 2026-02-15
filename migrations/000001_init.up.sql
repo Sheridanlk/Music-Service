@@ -4,7 +4,7 @@ CREATE TABLE tracks (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
     origin_bucket TEXT NOT NULL,
-    origin_key TEXT NOT NULL,
+    origin_key TEXT,
 
     hls_bucket TEXT,
     hls_prefix TEXT
