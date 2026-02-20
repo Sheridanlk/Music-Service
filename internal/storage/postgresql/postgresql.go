@@ -56,8 +56,8 @@ func (s *Storage) Close() {
 	s.pool.Close()
 }
 
-func (s *Storage) Save(ctx context.Context, title, originBucket string) (int64, error) {
-	const op = "storage.postgresql.Save"
+func (s *Storage) SaveTrack(ctx context.Context, title, originBucket string) (int64, error) {
+	const op = "storage.postgresql.SaveTrack"
 
 	var id int64
 
@@ -103,8 +103,8 @@ func (s *Storage) SetHLS(ctx context.Context, id int64, hlsBucket string, hlsPre
 	return nil
 }
 
-func (s *Storage) Get(ctx context.Context, id int64) (models.Track, error) {
-	const op = "storage.postgresql.Get"
+func (s *Storage) GetTrack(ctx context.Context, id int64) (models.Track, error) {
+	const op = "storage.postgresql.GetTrack"
 
 	var track models.Track
 
@@ -118,4 +118,21 @@ func (s *Storage) Get(ctx context.Context, id int64) (models.Track, error) {
 	}
 
 	return track, nil
+}
+
+func (s *Storage) GetHLS(ctx context.Context, id int64) (string, string, error) {
+	const op = "storage.postgresql.GetHLS"
+
+	var bucket, prefix *string
+
+	err := s.pool.QueryRow(
+		ctx,
+		`SELECT hls_bucket, hls_prefix WHERE id = $1`,
+		id,
+	).Scan(&bucket, &prefix)
+	if err != nil {
+		return "", "", fmt.Errorf("%s: can't get track hls infornation: %w", op, err)
+	}
+
+	return *bucket, *prefix, nil
 }
