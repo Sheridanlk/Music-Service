@@ -1,4 +1,4 @@
-package tracks
+package stream
 
 import (
 	"context"
@@ -28,7 +28,7 @@ type TrackProvider interface {
 }
 
 type MediaProvider interface {
-	GetObject(ctx context.Context, bucketName, objectName string, byteRange *storage.ByteRannge) (io.ReadCloser, string, int64, error)
+	GetObject(ctx context.Context, bucketName, objectName string, byteRange *storage.ByteRange) (io.ReadCloser, string, int64, error)
 }
 
 func New(log *slog.Logger, trackProvider TrackProvider, mediaProvider MediaProvider) *Stream {
@@ -39,7 +39,7 @@ func New(log *slog.Logger, trackProvider TrackProvider, mediaProvider MediaProvi
 	}
 }
 
-func (s *Stream) GetStreamObject(ctx context.Context, trackID int64, file string, br *storage.ByteRannge) (io.ReadCloser, string, int64, error) {
+func (s *Stream) GetStreamObject(ctx context.Context, trackID int64, file string, br *storage.ByteRange) (io.ReadCloser, string, int64, error) {
 	const op = "stream.GetStreamObject"
 
 	log := s.log.With(

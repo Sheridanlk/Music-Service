@@ -1,4 +1,4 @@
-package minio
+package media
 
 import (
 	"context"
@@ -45,7 +45,7 @@ func (s *MinioStorage) PutObject(ctx context.Context, bucketName, objectName str
 	return nil
 }
 
-func (s *MinioStorage) GetObject(ctx context.Context, bucketName, objectName string, byteRange *storage.ByteRannge) (io.ReadCloser, string, int64, error) {
+func (s *MinioStorage) GetObject(ctx context.Context, bucketName, objectName string, byteRange *storage.ByteRange) (io.ReadCloser, string, int64, error) {
 	const op = "storage.minio.Download"
 
 	opts := minio.GetObjectOptions{}
