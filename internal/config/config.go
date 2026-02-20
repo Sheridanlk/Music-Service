@@ -31,10 +31,10 @@ type PostgreSQL struct {
 }
 
 type MinIOClient struct {
-	endpoint        string `yaml:"endpoint"`
-	accessKeyID     string `yaml:"access_key_id"`
-	secretAccessKey string `yaml:"secret_access_key" env_required:"MINIO_SECRET_ACCESS_KEY"`
-	useSSL          bool   `yaml:"use_ssl"`
+	Endpoint        string `yaml:"endpoint"`
+	AccessKeyID     string `yaml:"access_key_id"`
+	SecretAccessKey string `yaml:"secret_access_key" env_required:"MINIO_SECRET_ACCESS_KEY"`
+	UseSSL          bool   `yaml:"use_ssl"`
 }
 
 func Load() *Config {
