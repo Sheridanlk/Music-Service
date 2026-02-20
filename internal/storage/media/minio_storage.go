@@ -27,7 +27,7 @@ func New(log *slog.Logger, client *minio.Client) *MinioStorage {
 	}
 }
 
-func (s *MinioStorage) Upload(ctx context.Context, bucketName, objectName string, r io.Reader, size int64, contentType string) error {
+func (s *MinioStorage) PutObject(ctx context.Context, bucketName, objectName string, r io.Reader, size int64, contentType string) error {
 	const op = "storage.minio.Upload"
 
 	_, err := s.minioclient.PutObject(
@@ -45,7 +45,7 @@ func (s *MinioStorage) Upload(ctx context.Context, bucketName, objectName string
 	return nil
 }
 
-func (s *MinioStorage) Download(ctx context.Context, bucketName, objectName string, byteRange *storage.ByteRannge) (io.ReadCloser, string, error) {
+func (s *MinioStorage) GetObject(ctx context.Context, bucketName, objectName string, byteRange *storage.ByteRannge) (io.ReadCloser, string, int64, error) {
 	const op = "storage.minio.Download"
 
 	opts := minio.GetObjectOptions{}
@@ -55,12 +55,18 @@ func (s *MinioStorage) Download(ctx context.Context, bucketName, objectName stri
 
 	obj, err := s.minioclient.GetObject(ctx, bucketName, objectName, opts)
 	if err != nil {
-		return nil, "", fmt.Errorf("%s: can't download object: %w", op, err)
+		return nil, "", 0, fmt.Errorf("%s: can't download object: %w", op, err)
+	}
+
+	st, err := obj.Stat()
+	if err != nil {
+		obj.Close()
+		return nil, "", 0, fmt.Errorf("%s: can't get object stats: %w", op, err)
 	}
 
 	ct := contentTypeByExt(objectName)
 
-	return obj, ct, nil
+	return obj, ct, st.Size, nil
 }
 
 func contentTypeByExt(name string) string {
