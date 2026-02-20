@@ -1,6 +1,6 @@
 package storage
 
-type ByteRannge struct {
+type ByteRange struct {
 	Start int64
 	End   int64
 }
