@@ -9,10 +9,11 @@ import (
 )
 
 type Config struct {
-	Env         string      `yaml:"env"`
-	HTTPServer  HTTPServer  `yaml:"http_server"`
-	PostgreSQL  PostgreSQL  `yaml:"postgresql"`
-	MinIOClient MinIOClient `yaml:"minio_client"`
+	Env          string       `yaml:"env"`
+	HTTPServer   HTTPServer   `yaml:"http_server"`
+	PostgreSQL   PostgreSQL   `yaml:"postgresql"`
+	MinIOClient  MinIOClient  `yaml:"minio_client"`
+	MinioStorage MinioStorage `yaml:"minio_storage"`
 }
 
 type HTTPServer struct {
@@ -35,6 +36,11 @@ type MinIOClient struct {
 	AccessKeyID     string `yaml:"access_key_id"`
 	SecretAccessKey string `yaml:"secret_access_key" env_required:"MINIO_SECRET_ACCESS_KEY"`
 	UseSSL          bool   `yaml:"use_ssl"`
+}
+
+type MinioStorage struct {
+	OriginalBucket string `yaml:"original_bucket"`
+	HLSBucket      string `yaml:"hls_bucket"`
 }
 
 func Load() *Config {
