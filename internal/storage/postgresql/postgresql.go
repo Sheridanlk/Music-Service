@@ -63,7 +63,7 @@ func (s *Storage) SaveTrack(ctx context.Context, title, originBucket string) (in
 
 	err := s.pool.QueryRow(
 		ctx,
-		`INSERT INTO tracks (title, origin_bucket) VALUES ($1, $2, $3) RETURNING id`,
+		`INSERT INTO tracks (title, origin_bucket) VALUES ($1, $2) RETURNING id`,
 		title, originBucket,
 	).Scan(&id)
 	if err != nil {
@@ -127,7 +127,7 @@ func (s *Storage) GetHLS(ctx context.Context, id int64) (string, string, error) 
 
 	err := s.pool.QueryRow(
 		ctx,
-		`SELECT hls_bucket, hls_prefix WHERE id = $1`,
+		`SELECT hls_bucket, hls_prefix FROM tracks WHERE id = $1`,
 		id,
 	).Scan(&bucket, &prefix)
 	if err != nil {
