@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -13,7 +14,7 @@ type App struct {
 }
 
 func New(log *slog.Logger, router http.Handler, host string, port int, readTimeout time.Duration, writeTimeout time.Duration, idleTimeout time.Duration) *App {
-	address := host + ":" + string(rune(port))
+	address := host + ":" + strconv.Itoa(port)
 	serv := &http.Server{
 		Addr:         address,
 		Handler:      router,
