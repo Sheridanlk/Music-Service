@@ -1,0 +1,24 @@
+env: "local"
+
+http_server:
+  host: "0.0.0.0"
+  port: 8080
+  timeout: 10s
+  idle_timeout: 60s
+
+postgresql:
+  host: "localhost"
+  port: 5432
+  db_name: "music_service"
+  user_name: "postgres"
+  password: "" # env
+
+minio_client:
+  endpoint: "localhost:9000"
+  access_key_id: "musicadmin"
+  secret_access_key: "" #env
+  use_ssl: false
+
+minio_storage:
+  original_bucket: "media-origin"
+  hls_bucket: "media-hls"

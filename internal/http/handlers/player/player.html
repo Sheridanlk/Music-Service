@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mini Music Player (HLS)</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+  <style>
+    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    body { margin: 0; background: #0b0f17; color: #e6e9ef; }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 24px; }
+    .card { background: #121a2a; border: 1px solid #24314a; border-radius: 16px; padding: 18px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+    h1 { margin: 0 0 12px; font-size: 20px; font-weight: 700; }
+
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    input[type="text"] {
+      flex: 1 1 520px; min-width: 240px;
+      background: #0c1220; color: #e6e9ef;
+      border: 1px solid #2a3a57; border-radius: 10px;
+      padding: 10px 12px; outline: none;
+    }
+    button {
+      background: #2b6cff; color: white; border: 0;
+      padding: 10px 14px; border-radius: 10px;
+      cursor: pointer; font-weight: 600;
+    }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+
+    audio { width: 100%; margin-top: 12px; }
+
+    .meta { margin-top: 12px; display: grid; gap: 8px; }
+    .pill {
+      display: inline-flex; gap: 8px; align-items: center;
+      background: #0c1220; border: 1px solid #2a3a57;
+      padding: 8px 10px; border-radius: 999px; width: fit-content;
+      font-size: 13px;
+    }
+
+    .error { color: #ff6b6b; }
+    .ok { color: #6bffb0; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Проигрыватель</h1>
+
+      <div class="row">
+        <input id="url" type="text" value="http://localhost:8080/stream/1/index.m3u8" />
+        <button id="loadBtn">Загрузить</button>
+        <button id="stopBtn" disabled>Стоп</button>
+      </div>
+
+      <audio id="audio" controls preload="none"></audio>
+
+      <div class="meta">
+        <div class="pill">
+          <span>Статус:</span>
+          <strong id="status">не загружено</strong>
+        </div>
+
+        <div id="err" class="error" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const audio = document.getElementById('audio');
+  const urlInput = document.getElementById('url');
+  const loadBtn = document.getElementById('loadBtn');
+  const stopBtn = document.getElementById('stopBtn');
+
+  const statusEl = document.getElementById('status');
+  const errEl = document.getElementById('err');
+
+  let hls = null;
+
+  function setStatus(text, ok = false) {
+    statusEl.textContent = text;
+    statusEl.className = ok ? 'ok' : '';
+  }
+
+  function showError(msg) {
+    errEl.style.display = 'block';
+    errEl.textContent = msg;
+  }
+
+  function clearError() {
+    errEl.style.display = 'none';
+    errEl.textContent = '';
+  }
+
+  function destroyHls() {
+    if (hls) {
+      try { hls.destroy(); } catch {}
+      hls = null;
+    }
+  }
+
+  function reset() {
+    setStatus('не загружено');
+    stopBtn.disabled = true;
+  }
+
+  function stop() {
+    audio.pause();
+    audio.removeAttribute('src');
+    audio.load();
+    destroyHls();
+    clearError();
+    reset();
+  }
+
+  function loadStream(url) {
+    clearError();
+    destroyHls();
+
+    if (!url || !url.includes('.m3u8')) {
+      showError('Укажи URL на .m3u8 (HLS playlist).');
+      setStatus('ошибка');
+      return;
+    }
+
+    setStatus('загрузка…');
+
+    // Safari/iOS часто умеет HLS нативно
+    const canPlayNative = audio.canPlayType('application/vnd.apple.mpegurl') !== '';
+
+    if (canPlayNative && !Hls.isSupported()) {
+      audio.src = url;
+      audio.load();
+      audio.play().catch(() => {});
+      stopBtn.disabled = false;
+      return;
+    }
+
+    if (!Hls.isSupported()) {
+      showError('В этом браузере HLS не поддерживается. Попробуй Safari или другой браузер.');
+      setStatus('ошибка');
+      return;
+    }
+
+    hls = new Hls({ lowLatencyMode: true });
+
+    hls.on(Hls.Events.ERROR, (_, data) => {
+      // Ловим частые проблемы (CORS/404/медиа)
+      if (data.fatal) {
+        switch (data.type) {
+          case Hls.ErrorTypes.NETWORK_ERROR:
+            showError('Сетевая ошибка при загрузке HLS (часто CORS/404).');
+            break;
+          case Hls.ErrorTypes.MEDIA_ERROR:
+            showError('Ошибка декодирования медиа.');
+            break;
+          default:
+            showError('Фатальная ошибка HLS: ' + (data.details || data.type));
+        }
+        setStatus('ошибка');
+        destroyHls();
+      } else {
+        // нефатальные — просто обновим статус
+        if (data.details) setStatus('предупреждение: ' + data.details);
+      }
+    });
+
+    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+      stopBtn.disabled = false;
+      audio.play().catch(() => {});
+    });
+
+    hls.attachMedia(audio);
+    hls.loadSource(url);
+  }
+
+  // UI
+  loadBtn.addEventListener('click', () => loadStream(urlInput.value.trim()));
+  stopBtn.addEventListener('click', stop);
+
+  // Audio status
+  audio.addEventListener('playing', () => setStatus('играет', true));
+  audio.addEventListener('pause', () => {
+    // если это pause после stop(), статус уже "не загружено"
+    if (!audio.src) return;
+    setStatus('пауза', true);
+  });
+  audio.addEventListener('ended', () => setStatus('конец', true));
+  audio.addEventListener('waiting', () => setStatus('буферизация…'));
+  audio.addEventListener('stalled', () => setStatus('зависло…'));
+
+  // auto-load пример
+  loadStream(urlInput.value.trim());
+})();
+</script>
+</body>
+</html>
