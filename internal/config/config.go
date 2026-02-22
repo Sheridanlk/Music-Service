@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ilyakaznacheev/cleanenv"
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -28,13 +29,13 @@ type PostgreSQL struct {
 	Port     int    `yaml:"port"`
 	DBName   string `yaml:"db_name"`
 	UserName string `yaml:"user_name"`
-	Password string `yaml:"password" env_required:"PGSQL_PASSWORD"`
+	Password string `yaml:"password" env:"PGSQL_PASSWORD" env_required:"true"`
 }
 
 type MinIOClient struct {
 	Endpoint        string `yaml:"endpoint"`
 	AccessKeyID     string `yaml:"access_key_id"`
-	SecretAccessKey string `yaml:"secret_access_key" env_required:"MINIO_SECRET_ACCESS_KEY"`
+	SecretAccessKey string `yaml:"secret_access_key" env:"MINIO_SECRET_ACCESS_KEY" env_required:"true"`
 	UseSSL          bool   `yaml:"use_ssl"`
 }
 
@@ -44,6 +45,8 @@ type MinioStorage struct {
 }
 
 func Load() *Config {
+	_ = godotenv.Load()
+
 	path := os.Getenv("CONFIG_PATH")
 	if path == "" {
 		log.Fatal("CONFIG_PATH environment variable is not set")
