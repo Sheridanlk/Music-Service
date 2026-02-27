@@ -16,7 +16,7 @@ var (
 	ErrBadStreamFile = errors.New("bad stream file")
 )
 
-type Stream struct {
+type StreamService struct {
 	log *slog.Logger
 
 	trackProvider TrackProvider
@@ -31,15 +31,15 @@ type MediaProvider interface {
 	GetObject(ctx context.Context, bucketName, objectName string, byteRange *storage.ByteRange) (io.ReadCloser, string, int64, error)
 }
 
-func New(log *slog.Logger, trackProvider TrackProvider, mediaProvider MediaProvider) *Stream {
-	return &Stream{
+func New(log *slog.Logger, trackProvider TrackProvider, mediaProvider MediaProvider) *StreamService {
+	return &StreamService{
 		log:           log,
 		trackProvider: trackProvider,
 		mediaProvider: mediaProvider,
 	}
 }
 
-func (s *Stream) GetStreamObject(ctx context.Context, trackID int64, file string, br *storage.ByteRange) (io.ReadCloser, string, int64, error) {
+func (s *StreamService) GetStreamObject(ctx context.Context, trackID int64, file string, br *storage.ByteRange) (io.ReadCloser, string, int64, error) {
 	const op = "stream.GetStreamObject"
 
 	log := s.log.With(

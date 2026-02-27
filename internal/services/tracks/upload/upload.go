@@ -12,7 +12,7 @@ import (
 	"github.com/Sheridanlk/Music-Service/internal/lib/ffmpeg"
 )
 
-type Upload struct {
+type UploadService struct {
 	log *slog.Logger
 
 	trackSaver TrackSaver
@@ -32,8 +32,8 @@ type MediaSaver interface {
 	PutObject(ctx context.Context, bucketName, objectName string, r io.Reader, size int64, contentType string) error
 }
 
-func New(log *slog.Logger, trackSaver TrackSaver, mediaSaver MediaSaver, originalBucket, hlsBucket string) *Upload {
-	return &Upload{
+func New(log *slog.Logger, trackSaver TrackSaver, mediaSaver MediaSaver, originalBucket, hlsBucket string) *UploadService {
+	return &UploadService{
 		log:            log,
 		trackSaver:     trackSaver,
 		mediaSaver:     mediaSaver,
@@ -42,7 +42,7 @@ func New(log *slog.Logger, trackSaver TrackSaver, mediaSaver MediaSaver, origina
 	}
 }
 
-func (s *Upload) UploadTrack(ctx context.Context, title string, filename string, reader io.Reader, size int64) (int64, error) {
+func (s *UploadService) UploadTrack(ctx context.Context, title string, filename string, reader io.Reader, size int64) (int64, error) {
 	const op = "tracks.UploadTrack"
 
 	log := s.log.With(
