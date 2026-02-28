@@ -112,7 +112,7 @@ func (s *Storage) GetTrack(ctx context.Context, id int64) (models.Track, error) 
 		ctx,
 		`SELECT id, title, created_at, origin_bucket, origin_key, hls_bucket FROM tracks WHERE id = $1`,
 		id,
-	).Scan(&track.ID, &track.Title, &track.CreatedAt, &track.OriginBucvket, &track.OriginKey, &track.HLSBucket)
+	).Scan(&track.ID, &track.Title, &track.CreatedAt, &track.OriginBucket, &track.OriginKey, &track.HLSBucket)
 	if err != nil {
 		return track, fmt.Errorf("%s: can't get track: %w", op, err)
 	}
@@ -135,4 +135,30 @@ func (s *Storage) GetHLS(ctx context.Context, id int64) (string, string, error) 
 	}
 
 	return *bucket, *prefix, nil
+}
+
+func (s *Storage) ListTracks(ctx context.Context, count int, offset int) ([]models.TrackListItem, error) {
+	const op = "storage.postgresql.ListTracks"
+
+	tracks := make([]models.TrackListItem, 0, count)
+
+	rows, err := s.pool.Query(
+		ctx,
+		`SELECT id, title, created_at FORM tracks ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
+		count, offset,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("%s: can't get tracks: %w", op, err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var track models.TrackListItem
+		if err := rows.Scan(&track.ID, &track.Title, &track.CreatedAt); err != nil {
+			return nil, fmt.Errorf("%s: scan: %w", op, err)
+		}
+		tracks = append(tracks, track)
+	}
+
+	return tracks, nil
 }
