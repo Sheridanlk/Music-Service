@@ -144,7 +144,7 @@ func (s *Storage) ListTracks(ctx context.Context, count int, offset int) ([]mode
 
 	rows, err := s.pool.Query(
 		ctx,
-		`SELECT id, title, created_at FORM tracks ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
+		`SELECT id, title, created_at FROM tracks ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
 		count, offset,
 	)
 	if err != nil {
