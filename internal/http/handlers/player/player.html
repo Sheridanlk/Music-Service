@@ -3,94 +3,689 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Mini Music Player (HLS)</title>
+  <title>Mini Music</title>
 
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
   <style>
-    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
-    body { margin: 0; background: #0b0f17; color: #e6e9ef; }
-    .wrap { max-width: 920px; margin: 0 auto; padding: 24px; }
-    .card { background: #121a2a; border: 1px solid #24314a; border-radius: 16px; padding: 18px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
-    h1 { margin: 0 0 12px; font-size: 20px; font-weight: 700; }
+    :root{
+      --bg: #071018;
+      --border: rgba(255,255,255,.08);
+      --text:#e6eef6;
+      --muted:#9fb2c6;
 
-    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-    input[type="text"] {
-      flex: 1 1 520px; min-width: 240px;
-      background: #0c1220; color: #e6e9ef;
-      border: 1px solid #2a3a57; border-radius: 10px;
-      padding: 10px 12px; outline: none;
+      --accent: #0aa6a6;
+      --accent2: rgba(10,166,166,.18);
+      --accentBorder: rgba(10,166,166,.32);
+
+      --danger:#ff6b6b;
+      --ok:#63e6be;
+
+      --shadow: 0 14px 40px rgba(0,0,0,.38);
+      --radius: 16px;
     }
-    button {
-      background: #2b6cff; color: white; border: 0;
-      padding: 10px 14px; border-radius: 10px;
-      cursor: pointer; font-weight: 600;
+    *{ box-sizing: border-box; }
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:
+        radial-gradient(1100px 600px at 20% -10%, rgba(10,166,166,.16), transparent 58%),
+        radial-gradient(900px 500px at 85% 10%, rgba(66,133,244,.10), transparent 55%),
+        var(--bg);
+      color: var(--text);
     }
-    button:disabled { opacity: .5; cursor: not-allowed; }
 
-    audio { width: 100%; margin-top: 12px; }
+    .app{
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      min-height: 100vh;
+      padding-bottom: 96px;
+    }
+    .sidebar{
+      border-right: 1px solid var(--border);
+      background: rgba(6,12,18,.65);
+      backdrop-filter: blur(10px);
+      padding: 18px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap: 12px;
+      padding: 10px 10px 12px;
+      border-radius: 14px;
+    }
+    .logo{
+      width: 36px; height: 36px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(10,166,166,1), rgba(10,166,166,.18));
+      box-shadow: 0 12px 28px rgba(10,166,166,.18);
+      border: 1px solid rgba(255,255,255,.10);
+    }
+    .brand h1{
+      margin:0;
+      font-size: 14px;
+      letter-spacing: .2px;
+    }
 
-    .meta { margin-top: 12px; display: grid; gap: 8px; }
-    .pill {
-      display: inline-flex; gap: 8px; align-items: center;
-      background: #0c1220; border: 1px solid #2a3a57;
-      padding: 8px 10px; border-radius: 999px; width: fit-content;
+    .content{ padding: 22px; }
+
+    .topbar{
+      display:flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .title h2{ margin:0; font-size: 22px; }
+    .title .sub{ margin:6px 0 0; color: var(--muted); font-size: 13px; }
+
+    .actions{
+      display:flex;
+      gap: 10px;
+      align-items:center;
+    }
+
+    .btn{
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.08);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-weight: 900;
+      cursor: pointer;
+      transition: transform .05s ease, background .15s ease;
+    }
+    .btn:hover{ background: rgba(255,255,255,.09); }
+    .btn:active{ transform: translateY(1px); }
+    .btn.primary{
+      background: var(--accent2);
+      border-color: var(--accentBorder);
+    }
+    .btn.primary:hover{ background: rgba(10,166,166,.24); }
+    .btn:disabled{ opacity: .55; cursor:not-allowed; }
+
+    .list{
+      background: rgba(255,255,255,.03);
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .listHeader{
+      display:grid;
+      grid-template-columns: 70px 1fr 170px;
+      gap: 10px;
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: .2px;
+      background: linear-gradient(180deg, rgba(255,255,255,.03), transparent);
+    }
+    .row{
+      display:grid;
+      grid-template-columns: 70px 1fr 170px;
+      gap: 10px;
+      padding: 12px 14px;
+      align-items: center;
+      cursor: pointer;
+      border-bottom: 1px solid rgba(255,255,255,.04);
+      transition: background .12s ease;
+    }
+    .row:hover{ background: rgba(255,255,255,.05); }
+
+    .idx{
+      display:flex; align-items:center; gap:10px;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+    .playDot{
+      width: 36px; height: 36px;
+      border-radius: 12px;
+      display:grid; place-items:center;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.07);
+      color: var(--text);
+      user-select: none;
+    }
+    .row.playing .playDot{
+      background: var(--accent2);
+      border-color: var(--accentBorder);
+      box-shadow: 0 12px 26px rgba(10,166,166,.18);
+    }
+    .titleCol{
+      display:flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+    .titleCol .name{
+      font-weight: 950;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .titleCol .meta{
+      color: var(--muted);
+      font-size: 12px;
+      height: 14px; /* оставляем место, но пусто */
+    }
+    .date{
+      color: var(--muted);
+      font-size: 12px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .empty{
+      padding: 18px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .error{
+      margin-top: 12px;
+      color: var(--danger);
       font-size: 13px;
     }
+    .loading{
+      padding: 12px 14px;
+      color: var(--muted);
+      font-size: 13px;
+      border-top: 1px solid rgba(255,255,255,.04);
+      background: rgba(255,255,255,.02);
+    }
 
-    .error { color: #ff6b6b; }
-    .ok { color: #6bffb0; }
+    /* Bottom player */
+    .playerBar{
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      height: 92px;
+      background: rgba(6,12,18,.76);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid rgba(255,255,255,.08);
+      display:grid;
+      grid-template-columns: 1fr 1.2fr 1fr;
+      gap: 14px;
+      align-items:center;
+      padding: 12px 18px;
+      z-index: 50;
+    }
+    .nowPlaying{
+      display:flex;
+      gap: 12px;
+      align-items:center;
+      min-width: 0;
+    }
+    .cover{
+      width: 56px; height: 56px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(255,255,255,.12), rgba(255,255,255,.03));
+      border: 1px solid rgba(255,255,255,.08);
+      position: relative;
+      overflow: hidden;
+    }
+    .cover::after{
+      content:"";
+      position:absolute; inset:-30%;
+      background: radial-gradient(circle at 30% 20%, rgba(10,166,166,.35), transparent 55%);
+      transform: rotate(18deg);
+    }
+    .npText{
+      min-width: 0;
+      display:flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .npText .npTitle{
+      font-weight: 950;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .npText .npSub{
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .center{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      gap: 8px;
+      flex-direction: column;
+    }
+    .transport{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap: 10px;
+    }
+    .iconBtn{
+      width: 36px; height: 36px;
+      border-radius: 12px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.08);
+      color: var(--text);
+      cursor:pointer;
+      display:grid;
+      place-items:center;
+      user-select: none;
+    }
+    .iconBtn:hover{ background: rgba(255,255,255,.09); }
+    .playBtn{
+      width: 46px; height: 46px;
+      border-radius: 16px;
+      background: var(--accent2);
+      border: 1px solid var(--accentBorder);
+      box-shadow: 0 14px 30px rgba(10,166,166,.18);
+    }
+
+    .progressRow{
+      width: min(560px, 100%);
+      display: grid;
+      grid-template-columns: 46px 1fr 46px;
+      gap: 10px;
+      align-items:center;
+      color: var(--muted);
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+    }
+    .range{
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    .right{
+      display:flex;
+      justify-content: flex-end;
+      align-items:center;
+      gap: 10px;
+    }
+    .volWrap{ position: relative; }
+    .volBtn{
+      width: 38px; height: 38px;
+      border-radius: 14px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.08);
+      color: var(--text);
+      cursor:pointer;
+      display:grid;
+      place-items:center;
+      user-select:none;
+    }
+    .volBtn:hover{ background: rgba(255,255,255,.09); }
+
+    .volMenu{
+      position: absolute;
+      right: 0;
+      bottom: 48px;
+      width: 220px;
+      padding: 12px;
+      border-radius: 14px;
+      background: rgba(10,16,24,.92);
+      border: 1px solid rgba(255,255,255,.10);
+      box-shadow: var(--shadow);
+      display:none;
+      gap: 10px;
+    }
+    .volMenu.open{ display:grid; }
+    .volMenu .label{
+      display:flex;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .volMenu input{ width: 100%; accent-color: var(--accent); }
+
+    audio{ position: absolute; left: -9999px; width: 1px; height: 1px; }
+
+    /* Modal */
+    .modalOverlay{
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 18px;
+    }
+    .modalOverlay.open{ display:flex; }
+    .modal{
+      width: min(560px, 100%);
+      background: rgba(10,16,24,.92);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .modalHeader{
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    .modalHeader h3{
+      margin:0;
+      font-size: 16px;
+      font-weight: 950;
+    }
+    .closeBtn{
+      width: 36px; height: 36px;
+      border-radius: 12px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.08);
+      color: var(--text);
+      cursor:pointer;
+    }
+    .closeBtn:hover{ background: rgba(255,255,255,.09); }
+    .modalBody{
+      padding: 16px;
+      display: grid;
+      gap: 12px;
+    }
+    .field{ display:grid; gap: 6px; }
+    .field label{ color: var(--muted); font-size: 12px; }
+    .input{
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.10);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 10px 12px;
+      outline: none;
+    }
+    .fileRow{
+      display:flex;
+      gap: 10px;
+      align-items:center;
+      flex-wrap: wrap;
+    }
+    .fileName{
+      color: var(--muted);
+      font-size: 12px;
+      overflow:hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 100%;
+    }
+    .modalActions{
+      display:flex;
+      gap: 10px;
+      justify-content: flex-end;
+      padding: 0 16px 16px;
+    }
+    .hint{
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+    .toast{
+      display:none;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .toast.show{ display:block; }
+    .toast.ok{
+      border-color: rgba(99,230,190,.30);
+      background: rgba(99,230,190,.10);
+      color: var(--ok);
+    }
+    .toast.bad{
+      border-color: rgba(255,107,107,.30);
+      background: rgba(255,107,107,.10);
+      color: var(--danger);
+    }
+
+    .spinner{
+      width: 14px; height: 14px;
+      border-radius: 999px;
+      border: 2px solid rgba(255,255,255,.22);
+      border-top-color: var(--accent);
+      display:inline-block;
+      animation: spin 0.9s linear infinite;
+      vertical-align: -2px;
+      margin-right: 8px;
+    }
+    @keyframes spin{ to { transform: rotate(360deg); } }
+
+    @media (max-width: 980px){
+      .app{ grid-template-columns: 1fr; }
+      .sidebar{
+        position: relative;
+        height: auto;
+        border-right: 0;
+        border-bottom: 1px solid var(--border);
+      }
+      .playerBar{
+        grid-template-columns: 1fr;
+        height: auto;
+        gap: 10px;
+      }
+      .right{ justify-content: space-between; }
+      .progressRow{ width: 100%; }
+    }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="card">
-      <h1>Проигрыватель</h1>
-
-      <div class="row">
-        <input id="url" type="text" value="http://localhost:8080/stream/1/index.m3u8" />
-        <button id="loadBtn">Загрузить</button>
-        <button id="stopBtn" disabled>Стоп</button>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div><h1>Mini Music</h1></div>
       </div>
+    </aside>
 
-      <audio id="audio" controls preload="none"></audio>
-
-      <div class="meta">
-        <div class="pill">
-          <span>Статус:</span>
-          <strong id="status">не загружено</strong>
+    <main class="content">
+      <div class="topbar">
+        <div class="title">
+          <h2>Треки</h2>
+          <div class="sub">Клик по треку — play/pause. Скролл вниз — подгрузка.</div>
         </div>
 
-        <div id="err" class="error" style="display:none;"></div>
+        <div class="actions">
+          <button class="btn" id="reload">Обновить</button>
+          <button class="btn primary" id="openUpload">Загрузить</button>
+        </div>
+      </div>
+
+      <section class="list" id="list">
+        <div class="listHeader">
+          <div>#</div>
+          <div>Название</div>
+          <div style="text-align:right">Добавлен</div>
+        </div>
+        <div id="rows"></div>
+        <div class="empty" id="empty" style="display:none;">Пока нет треков</div>
+        <div class="loading" id="loading" style="display:none;">Загрузка…</div>
+      </section>
+
+      <div class="error" id="error" style="display:none;"></div>
+    </main>
+  </div>
+
+  <audio id="audio" preload="none"></audio>
+
+  <div class="playerBar">
+    <div class="nowPlaying">
+      <div class="cover" aria-hidden="true"></div>
+      <div class="npText">
+        <div class="npTitle" id="npTitle">Ничего не играет</div>
+        <div class="npSub" id="npSub">Выбери трек из списка</div>
+      </div>
+    </div>
+
+    <div class="center">
+      <div class="transport">
+        <button class="iconBtn" id="btnPrev" title="Предыдущий">⟨⟨</button>
+        <button class="iconBtn playBtn" id="btnPlay" title="Play/Pause">▶</button>
+        <button class="iconBtn" id="btnNext" title="Следующий">⟩⟩</button>
+        <button class="iconBtn" id="btnStop" title="Стоп">■</button>
+      </div>
+
+      <div class="progressRow">
+        <div id="tCur">00:00</div>
+        <input id="seek" class="range" type="range" min="0" max="1000" value="0" />
+        <div id="tDur">--:--</div>
+      </div>
+    </div>
+
+    <div class="right">
+      <div class="volWrap">
+        <button class="volBtn" id="volBtn" title="Громкость">🔊</button>
+        <div class="volMenu" id="volMenu">
+          <div class="label">
+            <span>Громкость</span>
+            <span id="volVal">100%</span>
+          </div>
+          <input id="vol" type="range" min="0" max="100" value="100" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload Modal -->
+  <div class="modalOverlay" id="modalOverlay" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="uploadTitle">
+      <div class="modalHeader">
+        <h3 id="uploadTitle">Загрузка трека</h3>
+        <button class="closeBtn" id="closeUpload" title="Закрыть">✕</button>
+      </div>
+
+      <div class="modalBody">
+        <div class="toast" id="uploadToast"></div>
+
+        <div class="field">
+          <label for="trackTitle">Название</label>
+          <input class="input" id="trackTitle" type="text" placeholder="Например: Танец злобного гения" />
+        </div>
+
+        <div class="field">
+          <label>Файл</label>
+          <div class="fileRow">
+            <input id="trackFile" type="file" accept="audio/*" />
+            <div class="fileName" id="fileName">Файл не выбран</div>
+          </div>
+          <div class="hint">Формат зависит от backend/ffmpeg. Часто ок: mp3/wav/flac.</div>
+        </div>
+      </div>
+
+      <div class="modalActions">
+        <button class="btn" id="cancelUpload">Отмена</button>
+        <button class="btn primary" id="doUpload">Загрузить</button>
       </div>
     </div>
   </div>
 
 <script>
 (() => {
+  const API_BASE = 'http://localhost:8080';
+  const PAGE_SIZE = 30;
+
+  // list UI
+  const rowsEl = document.getElementById('rows');
+  const emptyEl = document.getElementById('empty');
+  const errorEl = document.getElementById('error');
+  const loadingEl = document.getElementById('loading');
+  const listEl = document.getElementById('list');
+  const btnReload = document.getElementById('reload');
+
+  // player UI
   const audio = document.getElementById('audio');
-  const urlInput = document.getElementById('url');
-  const loadBtn = document.getElementById('loadBtn');
-  const stopBtn = document.getElementById('stopBtn');
+  const npTitle = document.getElementById('npTitle');
+  const npSub = document.getElementById('npSub');
 
-  const statusEl = document.getElementById('status');
-  const errEl = document.getElementById('err');
+  const btnPrev = document.getElementById('btnPrev');
+  const btnPlay = document.getElementById('btnPlay');
+  const btnNext = document.getElementById('btnNext');
+  const btnStop = document.getElementById('btnStop');
 
+  const tCur = document.getElementById('tCur');
+  const tDur = document.getElementById('tDur');
+  const seek = document.getElementById('seek');
+
+  // volume UI
+  const volBtn = document.getElementById('volBtn');
+  const volMenu = document.getElementById('volMenu');
+  const vol = document.getElementById('vol');
+  const volVal = document.getElementById('volVal');
+
+  // upload modal UI
+  const openUpload = document.getElementById('openUpload');
+  const modalOverlay = document.getElementById('modalOverlay');
+  const closeUpload = document.getElementById('closeUpload');
+  const cancelUpload = document.getElementById('cancelUpload');
+  const doUpload = document.getElementById('doUpload');
+  const trackTitle = document.getElementById('trackTitle');
+  const trackFile = document.getElementById('trackFile');
+  const fileName = document.getElementById('fileName');
+  const uploadToast = document.getElementById('uploadToast');
+
+  let uploadAbort = null;
   let hls = null;
 
-  function setStatus(text, ok = false) {
-    statusEl.textContent = text;
-    statusEl.className = ok ? 'ok' : '';
+  // list state
+  let items = [];
+  let offset = 0;
+  let isLoading = false;
+  let hasMore = true;
+
+  // player state
+  let currentTrackId = null;
+  let userSeeking = false;
+
+  function setError(msg) {
+    if (!msg) {
+      errorEl.style.display = 'none';
+      errorEl.textContent = '';
+      return;
+    }
+    errorEl.style.display = 'block';
+    errorEl.textContent = msg;
   }
 
-  function showError(msg) {
-    errEl.style.display = 'block';
-    errEl.textContent = msg;
+  function toast(msg, kind) {
+    uploadToast.className = 'toast show' + (kind ? ' ' + kind : '');
+    uploadToast.textContent = msg;
+  }
+  function clearToast() {
+    uploadToast.className = 'toast';
+    uploadToast.textContent = '';
   }
 
-  function clearError() {
-    errEl.style.display = 'none';
-    errEl.textContent = '';
+  function escapeHtml(s) {
+    return String(s ?? '')
+      .replaceAll('&','&amp;')
+      .replaceAll('<','&lt;')
+      .replaceAll('>','&gt;')
+      .replaceAll('"','&quot;')
+      .replaceAll("'","&#039;");
+  }
+
+  function fmtTime(sec) {
+    if (!Number.isFinite(sec) || sec < 0) return '--:--';
+    const s = Math.floor(sec % 60).toString().padStart(2, '0');
+    const m = Math.floor((sec / 60) % 60).toString().padStart(2, '0');
+    const h = Math.floor(sec / 3600);
+    return h > 0 ? `${h}:${m}:${s}` : `${m}:${s}`;
+  }
+
+  function absUrl(u) {
+    if (!u) return '';
+    if (u.startsWith('http://') || u.startsWith('https://')) return u;
+    if (u.startsWith('/')) return API_BASE + u;
+    return API_BASE + '/' + u;
   }
 
   function destroyHls() {
@@ -100,9 +695,149 @@
     }
   }
 
-  function reset() {
-    setStatus('не загружено');
-    stopBtn.disabled = true;
+  function render() {
+    rowsEl.innerHTML = '';
+    emptyEl.style.display = items.length ? 'none' : 'block';
+
+    items.forEach((t, i) => {
+      const row = document.createElement('div');
+      row.className = 'row' + (t.id === currentTrackId ? ' playing' : '');
+
+      const created = t.created_at ? new Date(t.created_at) : null;
+      const createdStr = created && !Number.isNaN(created.getTime())
+        ? created.toLocaleString()
+        : '';
+
+      const isCurrent = t.id === currentTrackId;
+      const icon = isCurrent ? (audio.paused ? '▶' : '❚❚') : '▶';
+
+      row.innerHTML = `
+        <div class="idx">
+          <div class="playDot" aria-hidden="true">${icon}</div>
+          <div>${String(i+1).padStart(2,'0')}</div>
+        </div>
+        <div class="titleCol">
+          <div class="name">${escapeHtml(t.title ?? '(no title)')}</div>
+          <div class="meta"></div>
+        </div>
+        <div class="date">${escapeHtml(createdStr)}</div>
+      `;
+
+      row.addEventListener('click', () => onTrackClick(t));
+      rowsEl.appendChild(row);
+    });
+  }
+
+  async function fetchPage({ replace }) {
+    if (isLoading) return;
+    if (!hasMore && !replace) return;
+
+    isLoading = true;
+    loadingEl.style.display = 'block';
+    setError('');
+
+    if (replace) {
+      offset = 0;
+      hasMore = true;
+    }
+
+    const url = `${API_BASE}/tracks?limit=${PAGE_SIZE}&offset=${offset}`;
+
+    let data;
+    try {
+      const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      data = await res.json();
+    } catch (e) {
+      setError(`Не смог загрузить /tracks: ${e.message}`);
+      loadingEl.style.display = 'none';
+      isLoading = false;
+      return;
+    }
+
+    const newItems = Array.isArray(data.items) ? data.items : [];
+
+    if (replace) items = newItems;
+    else items = items.concat(newItems);
+
+    offset += newItems.length;
+    if (newItems.length < PAGE_SIZE) hasMore = false;
+
+    loadingEl.style.display = 'none';
+    isLoading = false;
+
+    render();
+  }
+
+  function onTrackClick(track) {
+    if (currentTrackId === track.id) {
+      togglePlay();
+      render();
+      return;
+    }
+    playTrack(track);
+  }
+
+  function playTrack(track) {
+    setError('');
+    destroyHls();
+
+    const url = absUrl(track.stream_url);
+    if (!url || !url.includes('.m3u8')) {
+      setError('У трека нет корректного stream_url (.m3u8).');
+      return;
+    }
+
+    currentTrackId = track.id;
+
+    npTitle.textContent = track.title || `Track #${track.id}`;
+    npSub.textContent = ' ';
+
+    tCur.textContent = '00:00';
+    tDur.textContent = '--:--';
+    seek.value = '0';
+    btnPlay.textContent = '❚❚';
+
+    const canPlayNative = audio.canPlayType('application/vnd.apple.mpegurl') !== '';
+
+    if (canPlayNative && !Hls.isSupported()) {
+      audio.src = url;
+      audio.load();
+      audio.play().catch(() => {});
+      render();
+      return;
+    }
+
+    if (!Hls.isSupported()) {
+      setError('HLS не поддерживается в этом браузере.');
+      btnPlay.textContent = '▶';
+      return;
+    }
+
+    hls = new Hls({ lowLatencyMode: true });
+
+    hls.on(Hls.Events.ERROR, (_, data) => {
+      if (data.fatal) {
+        setError(`Ошибка HLS: ${data.type}${data.details ? ' • ' + data.details : ''}`);
+        destroyHls();
+        btnPlay.textContent = '▶';
+      }
+    });
+
+    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+      audio.play().catch(() => { btnPlay.textContent = '▶'; });
+    });
+
+    hls.attachMedia(audio);
+    hls.loadSource(url);
+
+    render();
+  }
+
+  function togglePlay() {
+    if (!audio.src && !currentTrackId) return;
+    if (audio.paused) audio.play().catch(() => {});
+    else audio.pause();
   }
 
   function stop() {
@@ -110,88 +845,221 @@
     audio.removeAttribute('src');
     audio.load();
     destroyHls();
-    clearError();
-    reset();
+
+    currentTrackId = null;
+
+    npTitle.textContent = 'Ничего не играет';
+    npSub.textContent = 'Выбери трек из списка';
+    tCur.textContent = '00:00';
+    tDur.textContent = '--:--';
+    seek.value = '0';
+    btnPlay.textContent = '▶';
+
+    render();
   }
 
-  function loadStream(url) {
-    clearError();
-    destroyHls();
+  function indexOfCurrent() {
+    if (currentTrackId == null) return -1;
+    return items.findIndex(t => t.id === currentTrackId);
+  }
 
-    if (!url || !url.includes('.m3u8')) {
-      showError('Укажи URL на .m3u8 (HLS playlist).');
-      setStatus('ошибка');
+  async function ensureNextLoadedIfNeeded(nextIndex) {
+    // если хотим переключиться дальше, но элемент ещё не загружен, подгрузим страницы пока можем
+    while (nextIndex >= items.length && hasMore && !isLoading) {
+      await fetchPage({ replace: false });
+    }
+  }
+
+  async function playNext(delta) {
+    if (items.length === 0) return;
+
+    let i = indexOfCurrent();
+    if (i === -1) i = 0;
+
+    let target = i + delta;
+    if (target < 0) target = 0;
+
+    await ensureNextLoadedIfNeeded(target);
+
+    if (target >= items.length) {
+      // дальше нет
       return;
     }
 
-    setStatus('загрузка…');
+    playTrack(items[target]);
+  }
 
-    // Safari/iOS часто умеет HLS нативно
-    const canPlayNative = audio.canPlayType('application/vnd.apple.mpegurl') !== '';
+  // Controls
+  btnPlay.addEventListener('click', () => { togglePlay(); render(); });
+  btnStop.addEventListener('click', stop);
+  btnPrev.addEventListener('click', () => playNext(-1));
+  btnNext.addEventListener('click', () => playNext(+1));
 
-    if (canPlayNative && !Hls.isSupported()) {
-      audio.src = url;
-      audio.load();
-      audio.play().catch(() => {});
-      stopBtn.disabled = false;
-      return;
-    }
+  // Player events
+  audio.addEventListener('playing', () => { btnPlay.textContent = '❚❚'; render(); });
+  audio.addEventListener('pause', () => { if (audio.src) btnPlay.textContent = '▶'; render(); });
 
-    if (!Hls.isSupported()) {
-      showError('В этом браузере HLS не поддерживается. Попробуй Safari или другой браузер.');
-      setStatus('ошибка');
-      return;
-    }
-
-    hls = new Hls({ lowLatencyMode: true });
-
-    hls.on(Hls.Events.ERROR, (_, data) => {
-      // Ловим частые проблемы (CORS/404/медиа)
-      if (data.fatal) {
-        switch (data.type) {
-          case Hls.ErrorTypes.NETWORK_ERROR:
-            showError('Сетевая ошибка при загрузке HLS (часто CORS/404).');
-            break;
-          case Hls.ErrorTypes.MEDIA_ERROR:
-            showError('Ошибка декодирования медиа.');
-            break;
-          default:
-            showError('Фатальная ошибка HLS: ' + (data.details || data.type));
-        }
-        setStatus('ошибка');
-        destroyHls();
+  audio.addEventListener('durationchange', () => { tDur.textContent = fmtTime(audio.duration); });
+  audio.addEventListener('timeupdate', () => {
+    if (!userSeeking) {
+      const dur = audio.duration;
+      if (Number.isFinite(dur) && dur > 0) {
+        const p = audio.currentTime / dur;
+        seek.value = String(Math.round(p * Number(seek.max)));
+        tCur.textContent = fmtTime(audio.currentTime);
+        tDur.textContent = fmtTime(dur);
       } else {
-        // нефатальные — просто обновим статус
-        if (data.details) setStatus('предупреждение: ' + data.details);
+        tCur.textContent = fmtTime(audio.currentTime);
       }
-    });
+    }
+  });
 
-    hls.on(Hls.Events.MANIFEST_PARSED, () => {
-      stopBtn.disabled = false;
-      audio.play().catch(() => {});
-    });
+  audio.addEventListener('ended', () => {
+    // как “у всех”: авто-переход на следующий
+    playNext(+1);
+  });
 
-    hls.attachMedia(audio);
-    hls.loadSource(url);
+  // Seek handlers
+  seek.addEventListener('mousedown', () => userSeeking = true);
+  seek.addEventListener('touchstart', () => userSeeking = true, { passive: true });
+  function commitSeek() {
+    userSeeking = false;
+    const dur = audio.duration;
+    if (!Number.isFinite(dur) || dur <= 0) return;
+    const p = Number(seek.value) / Number(seek.max);
+    audio.currentTime = p * dur;
+  }
+  seek.addEventListener('mouseup', commitSeek);
+  seek.addEventListener('touchend', commitSeek);
+  seek.addEventListener('change', commitSeek);
+
+  // Volume dropdown
+  function setVolUI(v01){
+    const pct = Math.round(v01 * 100);
+    vol.value = String(pct);
+    volVal.textContent = `${pct}%`;
+    if (pct === 0) volBtn.textContent = '🔇';
+    else if (pct < 50) volBtn.textContent = '🔉';
+    else volBtn.textContent = '🔊';
+  }
+  audio.volume = 1.0;
+  setVolUI(audio.volume);
+  vol.addEventListener('input', () => {
+    const v01 = Math.max(0, Math.min(1, Number(vol.value)/100));
+    audio.volume = v01;
+    setVolUI(v01);
+  });
+  volBtn.addEventListener('click', (e) => { e.stopPropagation(); volMenu.classList.toggle('open'); });
+  document.addEventListener('click', () => volMenu.classList.remove('open'));
+
+  // Infinite scroll sentinel
+  const sentinel = document.createElement('div');
+  sentinel.style.height = '1px';
+  listEl.appendChild(sentinel);
+
+  const io = new IntersectionObserver((entries) => {
+    for (const ent of entries) {
+      if (ent.isIntersecting) fetchPage({ replace: false });
+    }
+  }, { root: null, rootMargin: '600px 0px', threshold: 0 });
+  io.observe(sentinel);
+
+  // Reload
+  btnReload.addEventListener('click', () => fetchPage({ replace: true }));
+
+  // ===== Upload modal logic =====
+  function openModal() {
+    clearToast();
+    modalOverlay.classList.add('open');
+    modalOverlay.setAttribute('aria-hidden', 'false');
+    setTimeout(() => trackTitle.focus(), 0);
   }
 
-  // UI
-  loadBtn.addEventListener('click', () => loadStream(urlInput.value.trim()));
-  stopBtn.addEventListener('click', stop);
+  function closeModal() {
+    if (uploadAbort) {
+      uploadAbort.abort();
+      uploadAbort = null;
+    }
+    setUploadBusy(false);
+    clearToast();
+    modalOverlay.classList.remove('open');
+    modalOverlay.setAttribute('aria-hidden', 'true');
+  }
 
-  // Audio status
-  audio.addEventListener('playing', () => setStatus('играет', true));
-  audio.addEventListener('pause', () => {
-    // если это pause после stop(), статус уже "не загружено"
-    if (!audio.src) return;
-    setStatus('пауза', true);
+  function setUploadBusy(busy) {
+    doUpload.disabled = busy;
+    trackTitle.disabled = busy;
+    trackFile.disabled = busy;
+    openUpload.disabled = busy;
+
+    if (busy) doUpload.innerHTML = `<span class="spinner"></span>Загрузка…`;
+    else { doUpload.textContent = 'Загрузить'; openUpload.disabled = false; }
+  }
+
+  trackFile.addEventListener('change', () => {
+    const f = trackFile.files && trackFile.files[0];
+    fileName.textContent = f ? f.name : 'Файл не выбран';
   });
-  audio.addEventListener('ended', () => setStatus('конец', true));
-  audio.addEventListener('waiting', () => setStatus('буферизация…'));
-  audio.addEventListener('stalled', () => setStatus('зависло…'));
 
-  // auto-load пример
-  loadStream(urlInput.value.trim());
+  openUpload.addEventListener('click', openModal);
+  closeUpload.addEventListener('click', closeModal);
+  cancelUpload.addEventListener('click', closeModal);
+  modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modalOverlay.classList.contains('open')) closeModal(); });
+
+  async function uploadTrack() {
+    clearToast();
+    setError('');
+
+    const title = trackTitle.value.trim();
+    const file = trackFile.files && trackFile.files[0];
+
+    if (!title) { toast('Введите название трека.', 'bad'); trackTitle.focus(); return; }
+    if (!file) { toast('Выберите файл.', 'bad'); trackFile.focus(); return; }
+
+    const fd = new FormData();
+    fd.append('title', title);
+    fd.append('file', file);
+
+    uploadAbort = new AbortController();
+    setUploadBusy(true);
+    toast('Загрузка началась…', '');
+
+    let res;
+    try {
+      res = await fetch(`${API_BASE}/tracks`, {
+        method: 'POST',
+        body: fd,
+        signal: uploadAbort.signal,
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      await res.json().catch(() => ({}));
+    } catch (e) {
+      if (e.name === 'AbortError') { setUploadBusy(false); return; }
+      toast(`Ошибка загрузки: ${e.message}`, 'bad');
+      setUploadBusy(false);
+      uploadAbort = null;
+      return;
+    }
+
+    uploadAbort = null;
+    toast('Готово! Трек загружен.', 'ok');
+
+    await fetchPage({ replace: true });
+
+    setTimeout(() => {
+      closeModal();
+      trackTitle.value = '';
+      trackFile.value = '';
+      fileName.textContent = 'Файл не выбран';
+    }, 650);
+
+    setUploadBusy(false);
+  }
+  doUpload.addEventListener('click', uploadTrack);
+
+  // Initial load
+  fetchPage({ replace: true });
 })();
 </script>
 </body>
