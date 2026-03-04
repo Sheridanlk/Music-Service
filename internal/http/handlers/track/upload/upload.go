@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/Sheridanlk/Music-Service/internal/lib/response"
+	"github.com/Sheridanlk/Music-Service/internal/logger"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
 )
@@ -34,7 +35,7 @@ type TrackUploader interface {
 
 func New(log *slog.Logger, uploader TrackUploader) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		const op = "uploadHandler"
+		const op = "handlers.track.upload.New"
 
 		log := log.With(
 			slog.String("op", op),
@@ -43,7 +44,7 @@ func New(log *slog.Logger, uploader TrackUploader) http.HandlerFunc {
 		r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
 
 		if err := r.ParseMultipartForm(maxUploadSize); err != nil {
-			log.Error("failed to parse multipart form", slog.String("error", err.Error()))
+			log.Error("failed to parse multipart form", logger.Err(err))
 
 			w.WriteHeader(http.StatusBadRequest)
 			render.JSON(w, r, response.Error("failed to parse multipart form"))
@@ -58,7 +59,7 @@ func New(log *slog.Logger, uploader TrackUploader) http.HandlerFunc {
 
 		if err := validator.New().Struct(req); err != nil {
 			validateErr := err.(validator.ValidationErrors)
-			log.Error("invalid request", slog.String("error", err.Error()))
+			log.Error("invalid request", logger.Err(err))
 
 			w.WriteHeader(http.StatusBadRequest)
 			render.JSON(w, r, response.ValidationError(validateErr))
@@ -68,7 +69,7 @@ func New(log *slog.Logger, uploader TrackUploader) http.HandlerFunc {
 
 		file, hdr, err := r.FormFile("file")
 		if errors.Is(err, http.ErrMissingFile) || err != nil {
-			log.Error("missing file", slog.String("error", err.Error()))
+			log.Error("missing file", logger.Err(err))
 
 			w.WriteHeader(http.StatusBadRequest)
 			render.JSON(w, r, response.Error("missing file"))
@@ -86,6 +87,7 @@ func New(log *slog.Logger, uploader TrackUploader) http.HandlerFunc {
 
 		id, err := uploader.UploadTrack(r.Context(), req.Title, filename, file, size)
 		if err != nil {
+			log.Error("faliled to upload track", logger.Err(err))
 
 			w.WriteHeader(http.StatusInternalServerError)
 			render.JSON(w, r, response.Error("failed to upload track"))

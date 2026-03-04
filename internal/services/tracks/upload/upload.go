@@ -64,37 +64,27 @@ func (s *UploadService) UploadTrack(ctx context.Context, title string, filename 
 
 	id, err := s.trackSaver.SaveTrack(ctx, title, s.originalBucket)
 	if err != nil {
-		log.Error("failed to save track", slog.String("error", err.Error()))
-
-		return 0, fmt.Errorf("%s: %w", op, err)
+		return 0, fmt.Errorf("%s: failed to save track: %w", op, err)
 	}
 
 	originKey := fmt.Sprintf("tracks/%d/source/original%s", id, ext)
 	if err := s.trackSaver.SetOrginKey(ctx, id, originKey); err != nil {
-		log.Error("failed to set origin key", slog.String("error", err.Error()))
-
-		return 0, fmt.Errorf("%s: cant't set origin key: %w", op, err)
+		return 0, fmt.Errorf("%s: failed to save origin key: %w", op, err)
 	}
 
 	tmpDir, err := os.MkdirTemp("", "track-*")
 	if err != nil {
-		log.Error("failed to create temp dir", slog.String("error", err.Error()))
-
-		return 0, fmt.Errorf("%s: can't create temp dir: %w", op, err)
+		return 0, fmt.Errorf("%s: failed to create temp dir: %w", op, err)
 	}
 	defer os.RemoveAll(tmpDir)
 
 	originalLocal := filepath.Join(tmpDir, "original"+ext)
 	if err := writeToFile(originalLocal, reader); err != nil {
-		log.Error("failed to copy original file", slog.String("error", err.Error()))
-
-		return 0, fmt.Errorf("%s: can't copy original file: %w", op, err)
+		return 0, fmt.Errorf("%s: failed to copy original file: %w", op, err)
 	}
 
 	if err := putFile(ctx, s.mediaSaver, s.originalBucket, originKey, originalLocal, detectContentType(ext)); err != nil {
-		log.Error("failed to upload original file", slog.String("error", err.Error()))
-
-		return 0, fmt.Errorf("%s: can't save original file: %w", op, err)
+		return 0, fmt.Errorf("%s: failed to upload original file: %w", op, err)
 	}
 
 	log.Info("original file uploaded successfully")
@@ -102,15 +92,11 @@ func (s *UploadService) UploadTrack(ctx context.Context, title string, filename 
 
 	hlsLocal := filepath.Join(tmpDir, "hls")
 	if err := os.Mkdir(hlsLocal, 0755); err != nil {
-		log.Error("failed to create hls dir", slog.String("error", err.Error()))
-
-		return 0, fmt.Errorf("%s: can't create hls dir: %w", op, err)
+		return 0, fmt.Errorf("%s: failed to create local hls dir: %w", op, err)
 	}
 
 	if err := ffmpeg.ToHLS(ctx, originalLocal, hlsLocal, 4); err != nil {
-		log.Error("failed to convert to hls", slog.String("error", err.Error()))
-
-		return 0, fmt.Errorf("%s: can't convert to hls: %w", op, err)
+		return 0, fmt.Errorf("%s: failed to convert to hls: %w", op, err)
 	}
 
 	log.Info("HLS conversion completed successfully")
@@ -118,19 +104,17 @@ func (s *UploadService) UploadTrack(ctx context.Context, title string, filename 
 
 	hlsPrefix := fmt.Sprintf("tracks/%d/hls/aac_128/", id)
 	if err := putDir(ctx, s.mediaSaver, s.hlsBucket, hlsPrefix, hlsLocal); err != nil {
-		log.Error("failed to upload hls files", slog.String("error", err.Error()))
-
-		return 0, fmt.Errorf("%s: can't upload hls files: %w", op, err)
+		return 0, fmt.Errorf("%s: failed to upload hls files: %w", op, err)
 
 	}
 
 	if err := s.trackSaver.SetHLS(ctx, id, s.hlsBucket, hlsPrefix); err != nil {
-		s.log.Error("failed to set hls info", slog.String("error", err.Error()))
-
-		return 0, fmt.Errorf("%s: can't set hls info: %w", op, err)
+		return 0, fmt.Errorf("%s: failed to save hls info: %w", op, err)
 	}
 
 	log.Info("HLS files uploaded successfully")
+	log.Info("the track has been loaded")
+
 	return id, nil
 }
 
