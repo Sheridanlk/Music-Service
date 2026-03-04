@@ -25,30 +25,18 @@ func New(log *slog.Logger, trackLister TrackLister) *ListService {
 	}
 }
 
-func (s *ListService) GetTracksList(ctx context.Context, count int, offset int) ([]models.TrackListItem, error) {
+func (s *ListService) GetTracksList(ctx context.Context, limit int, offset int) ([]models.TrackListItem, error) {
 	const op = "list.GetTracksList"
 
 	log := s.log.With(
 		slog.String("op", op),
 	)
 
-	if count <= 0 {
-		count = 20
-	}
-	if count > 200 {
-		count = 200
-	}
-	if offset < 0 {
-		offset = 0
-	}
-
 	log.Info("getting tracks list")
 
-	tracks, err := s.trackLister.ListTracks(ctx, count, offset)
+	tracks, err := s.trackLister.ListTracks(ctx, limit, offset)
 	if err != nil {
-		log.Error("failed to get tracks list", slog.String("error", err.Error()))
-
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: failed to get tracks list: %w", op, err)
 	}
 
 	log.Info("tracks geted")
