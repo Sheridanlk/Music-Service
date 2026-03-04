@@ -8,6 +8,7 @@ import (
 	"github.com/Sheridanlk/Music-Service/internal/clients/minio"
 	"github.com/Sheridanlk/Music-Service/internal/config"
 	"github.com/Sheridanlk/Music-Service/internal/http/router/chi"
+	"github.com/Sheridanlk/Music-Service/internal/services/tracks/list"
 	"github.com/Sheridanlk/Music-Service/internal/services/tracks/stream"
 	"github.com/Sheridanlk/Music-Service/internal/services/tracks/upload"
 	"github.com/Sheridanlk/Music-Service/internal/storage/media"
@@ -36,8 +37,9 @@ func New(log *slog.Logger, storageCfg config.PostgreSQL, serverCfg config.HTTPSe
 
 	trackUploaderService := upload.New(log, storage, minioStorage, minioStorageCfg.OriginalBucket, minioStorageCfg.HLSBucket)
 	trackStreamerService := stream.New(log, storage, minioStorage)
+	trackListerService := list.New(log, storage)
 
-	router := chi.Setup(log, trackUploaderService, trackStreamerService)
+	router := chi.Setup(log, trackUploaderService, trackStreamerService, trackListerService)
 
 	server := server.New(log, router, serverCfg.Host, serverCfg.Port, serverCfg.Timeout, serverCfg.Timeout, serverCfg.IdleTimeout)
 	return &App{
