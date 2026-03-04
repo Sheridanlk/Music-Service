@@ -35,6 +35,40 @@ services:
       mc mb -p local/$$HLS_BUCKET || true &&
       echo 'Buckets ensured';
       "
+  postgres:
+    image: postgres:15-alpine
+    container_name: music_postgres
+    environment:
+      POSTGRES_HOST: localhost
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${PGSQL_PASSWORD:-postgres}
+      POSTGRES_DB: music
+      POSTGRES_PORT: 5432
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  postgres_init:
+    image: migrate/migrate:4
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGSQL_PASSWORD: ${PGSQL_PASSWORD:-postgres}
+    volumes:
+      - ./migrations:/migrations:ro
+    command: [
+      "-path", "/migrations",
+      "-database", "postgres://postgres:${PGSQL_PASSWORD}@postgres:5432/music?sslmode=disable",
+      "up"
+    ]
+    restart: "no"
 
 volumes:
-  minio_data:
+  minio_data: 
+  pg_data:
