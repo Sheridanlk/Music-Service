@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/Sheridanlk/Music-Service/internal/lib/response"
+	"github.com/Sheridanlk/Music-Service/internal/logger"
 	"github.com/Sheridanlk/Music-Service/internal/storage"
 	chigo "github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
@@ -49,6 +50,7 @@ func New(log *slog.Logger, streamer Streamer) http.HandlerFunc {
 
 		rc, ct, _, err := streamer.GetStreamObject(r.Context(), trackID, file, br)
 		if err != nil {
+			log.Error("failed to get file", logger.Err(err))
 
 			w.WriteHeader(http.StatusNotFound)
 			render.JSON(w, r, response.Error("not found"))

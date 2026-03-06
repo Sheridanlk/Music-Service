@@ -48,21 +48,18 @@ func (s *StreamService) GetStreamObject(ctx context.Context, trackID int64, file
 		slog.String("file", file),
 	)
 
-	if file == "" || strings.Contains(file, "..") || strings.ContainsAny(file, `\/`) {
-		log.Warn("bad file name")
+	log.Info("getting file")
 
+	if file == "" || strings.Contains(file, "..") || strings.ContainsAny(file, `\/`) {
 		return nil, "", 0, fmt.Errorf("%s: %w", op, ErrBadStreamFile)
 	}
 
 	bucket, prefix, err := s.trackProvider.GetHLS(ctx, trackID)
 	if err != nil {
-		log.Error("failed to get hls info", slog.String("error", err.Error()))
-
-		return nil, "", 0, fmt.Errorf("%s: hls info: %w", op, err)
+		return nil, "", 0, fmt.Errorf("%s: failed to get hls info: %w", op, err)
 	}
-	if prefix == "" {
-		log.Info("track not ready")
 
+	if prefix == "" {
 		return nil, "", 0, fmt.Errorf("%s: %w", op, ErrTrackNotReady)
 	}
 
@@ -70,10 +67,10 @@ func (s *StreamService) GetStreamObject(ctx context.Context, trackID int64, file
 
 	rc, ct, size, err := s.mediaProvider.GetObject(ctx, bucket, key, br)
 	if err != nil {
-		log.Error("failed to get object", slog.String("error", err.Error()))
-
-		return nil, "", 0, fmt.Errorf("%s: can't get object: %w", op, err)
+		return nil, "", 0, fmt.Errorf("%s: failed to get object: %w", op, err)
 	}
+
+	log.Info("file getted")
 
 	return rc, ct, size, nil
 }
