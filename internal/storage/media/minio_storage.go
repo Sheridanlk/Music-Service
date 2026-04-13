@@ -11,20 +11,30 @@ import (
 
 	"github.com/Sheridanlk/Music-Service/internal/storage"
 	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
 type MinioStorage struct {
-	minioclient *minio.Client
 	log         *slog.Logger
+	minioclient *minio.Client
 }
 
-func New(log *slog.Logger, client *minio.Client) *MinioStorage {
+func New(log *slog.Logger, endpoint string, accessKeyID string, secretAccessKey string, useSSL bool) (*MinioStorage, error) {
+	const op = "storage.minio.New"
+	client, err := minio.New(endpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
+		Secure: useSSL,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
 	_ = mime.AddExtensionType(".m3u8", "application/vnd.apple.mpegurl")
 	_ = mime.AddExtensionType(".aac", "audio/aac")
 	return &MinioStorage{
 		minioclient: client,
 		log:         log,
-	}
+	}, nil
 }
 
 func (s *MinioStorage) PutObject(ctx context.Context, bucketName, objectName string, r io.Reader, size int64, contentType string) error {

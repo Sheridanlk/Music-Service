@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/Sheridanlk/Music-Service/internal/app/server"
-	"github.com/Sheridanlk/Music-Service/internal/clients/minio"
 	"github.com/Sheridanlk/Music-Service/internal/config"
 	"github.com/Sheridanlk/Music-Service/internal/http/router/chi"
 	"github.com/Sheridanlk/Music-Service/internal/services/tracks/list"
@@ -27,13 +26,11 @@ func New(log *slog.Logger, storageCfg config.PostgreSQL, serverCfg config.HTTPSe
 		os.Exit(1)
 	}
 
-	minioClient, err := minio.New(minioClientCfg.Endpoint, minioClientCfg.AccessKeyID, minioClientCfg.SecretAccessKey, minioClientCfg.UseSSL)
+	minioStorage, err := media.New(log, minioClientCfg.Endpoint, minioClientCfg.AccessKeyID, minioClientCfg.SecretAccessKey, minioClientCfg.UseSSL)
 	if err != nil {
-		log.Error("failed to init minio client", slog.String("error", err.Error()))
+		log.Error("failed to init minio storage", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
-
-	minioStorage := media.New(log, minioClient)
 
 	trackUploaderService := upload.New(log, storage, minioStorage, minioStorageCfg.OriginalBucket, minioStorageCfg.HLSBucket)
 	trackStreamerService := stream.New(log, storage, minioStorage)
