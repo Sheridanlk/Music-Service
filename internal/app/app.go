@@ -26,7 +26,7 @@ func New(log *slog.Logger, storageCfg config.PostgreSQL, serverCfg config.HTTPSe
 		os.Exit(1)
 	}
 
-	minioStorage, err := media.New(log, minioClientCfg.Endpoint, minioClientCfg.AccessKeyID, minioClientCfg.SecretAccessKey, minioClientCfg.UseSSL)
+	minioStorage, err := media.New(minioClientCfg.Endpoint, minioClientCfg.AccessKeyID, minioClientCfg.SecretAccessKey, minioClientCfg.UseSSL)
 	if err != nil {
 		log.Error("failed to init minio storage", slog.String("error", err.Error()))
 		os.Exit(1)

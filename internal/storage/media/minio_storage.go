@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log/slog"
 	"mime"
 	"path/filepath"
 	"strings"
@@ -15,11 +14,10 @@ import (
 )
 
 type MinioStorage struct {
-	log         *slog.Logger
 	minioclient *minio.Client
 }
 
-func New(log *slog.Logger, endpoint string, accessKeyID string, secretAccessKey string, useSSL bool) (*MinioStorage, error) {
+func New(endpoint string, accessKeyID string, secretAccessKey string, useSSL bool) (*MinioStorage, error) {
 	const op = "storage.minio.New"
 	client, err := minio.New(endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
@@ -33,7 +31,6 @@ func New(log *slog.Logger, endpoint string, accessKeyID string, secretAccessKey 
 	_ = mime.AddExtensionType(".aac", "audio/aac")
 	return &MinioStorage{
 		minioclient: client,
-		log:         log,
 	}, nil
 }
 
