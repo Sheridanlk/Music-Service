@@ -6,7 +6,6 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/Sheridanlk/Music-Service/internal/domain/models"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -54,111 +53,4 @@ func New(host, userName, password, dbName string, port int) (*Storage, error) {
 
 func (s *Storage) Close() {
 	s.pool.Close()
-}
-
-func (s *Storage) SaveTrack(ctx context.Context, title, originBucket string) (int64, error) {
-	const op = "storage.postgresql.SaveTrack"
-
-	var id int64
-
-	err := s.pool.QueryRow(
-		ctx,
-		`INSERT INTO tracks (title, origin_bucket) VALUES ($1, $2) RETURNING id`,
-		title, originBucket,
-	).Scan(&id)
-	if err != nil {
-		return 0, fmt.Errorf("%s: can't insert track: %w", op, err)
-	}
-
-	return id, nil
-}
-
-func (s *Storage) SetOrginKey(ctx context.Context, id int64, originKey string) error {
-	const op = "storage.postgresql.SetOrginKey"
-
-	_, err := s.pool.Exec(
-		ctx,
-		`UPDATE tracks SET origin_key = $1 WHERE id = $2`,
-		originKey, id,
-	)
-	if err != nil {
-		return fmt.Errorf("%s: can't set origin key: %w", op, err)
-	}
-
-	return nil
-}
-
-func (s *Storage) SetHLS(ctx context.Context, id int64, hlsBucket string, hlsPrefix string) error {
-	const op = "storage.postgresql.SetHLS"
-
-	_, err := s.pool.Exec(
-		ctx,
-		`UPDATE tracks SET hls_bucket = $1, hls_prefix = $2 WHERE id = $3`,
-		hlsBucket, hlsPrefix, id,
-	)
-	if err != nil {
-		return fmt.Errorf("%s: can't set hls: %w", op, err)
-	}
-
-	return nil
-}
-
-func (s *Storage) GetTrack(ctx context.Context, id int64) (models.Track, error) {
-	const op = "storage.postgresql.GetTrack"
-
-	var track models.Track
-
-	err := s.pool.QueryRow(
-		ctx,
-		`SELECT id, title, created_at, origin_bucket, origin_key, hls_bucket FROM tracks WHERE id = $1`,
-		id,
-	).Scan(&track.ID, &track.Title, &track.CreatedAt, &track.OriginBucket, &track.OriginKey, &track.HLSBucket)
-	if err != nil {
-		return track, fmt.Errorf("%s: can't get track: %w", op, err)
-	}
-
-	return track, nil
-}
-
-func (s *Storage) GetHLS(ctx context.Context, id int64) (string, string, error) {
-	const op = "storage.postgresql.GetHLS"
-
-	var bucket, prefix *string
-
-	err := s.pool.QueryRow(
-		ctx,
-		`SELECT hls_bucket, hls_prefix FROM tracks WHERE id = $1`,
-		id,
-	).Scan(&bucket, &prefix)
-	if err != nil {
-		return "", "", fmt.Errorf("%s: can't get track hls infornation: %w", op, err)
-	}
-
-	return *bucket, *prefix, nil
-}
-
-func (s *Storage) ListTracks(ctx context.Context, count int, offset int) ([]models.TrackListItem, error) {
-	const op = "storage.postgresql.ListTracks"
-
-	tracks := make([]models.TrackListItem, 0, count)
-
-	rows, err := s.pool.Query(
-		ctx,
-		`SELECT id, title, created_at FROM tracks ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
-		count, offset,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("%s: can't get tracks: %w", op, err)
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var track models.TrackListItem
-		if err := rows.Scan(&track.ID, &track.Title, &track.CreatedAt); err != nil {
-			return nil, fmt.Errorf("%s: scan: %w", op, err)
-		}
-		tracks = append(tracks, track)
-	}
-
-	return tracks, nil
 }
