@@ -22,3 +22,10 @@ minio_client:
 minio_storage:
   original_bucket: "media-origin"
   hls_bucket: "media-hls"
+
+rabbitmq:
+  host: "localhost"
+  port: 5672
+  user_name: "guest"
+  password: "" #env
+  queue_name: "media_processing_tasks"

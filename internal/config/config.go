@@ -15,6 +15,7 @@ type Config struct {
 	PostgreSQL   PostgreSQL   `yaml:"postgresql"`
 	MinIOClient  MinIOClient  `yaml:"minio_client"`
 	MinioStorage MinioStorage `yaml:"minio_storage"`
+	RabbitMQ     RabbitMQ     `yaml:"rabbitmq"`
 }
 
 type HTTPServer struct {
@@ -42,6 +43,13 @@ type MinIOClient struct {
 type MinioStorage struct {
 	OriginalBucket string `yaml:"original_bucket"`
 	HLSBucket      string `yaml:"hls_bucket"`
+}
+
+type RabbitMQ struct {
+	Host     string `yaml:"host"`
+	Port     int    `yaml:"port"`
+	UserName string `yaml:"user_name"`
+	Password string `yaml:"password" env:"RABBITMQ_PASSWORD" env_required:"true"`
 }
 
 func Load() *Config {
