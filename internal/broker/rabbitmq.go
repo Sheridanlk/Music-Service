@@ -7,13 +7,15 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
+const AudioTasksQueue = "audio_tasks"
+
 type RabbitMQ struct {
 	Conn    *amqp.Connection
 	Channel *amqp.Channel
 }
 
 func New(user, password, host string, port int) (*RabbitMQ, error) {
-	const op = "broker.rabbitmq.New"
+	const op = "broker.New"
 
 	connString := url.URL{
 		Scheme: "amqp",
@@ -32,13 +34,36 @@ func New(user, password, host string, port int) (*RabbitMQ, error) {
 		return nil, fmt.Errorf("%s: can't create channel: %w", op, err)
 	}
 
-	return &RabbitMQ{
+	r := &RabbitMQ{
 		Conn:    conn,
 		Channel: ch,
-	}, nil
+	}
+
+	if err := r.initQueue(); err != nil {
+		r.Close()
+		return nil, fmt.Errorf("%s: can't initialize queue: %w", op, err)
+	}
+
+	return r, nil
 }
 
 func (r *RabbitMQ) Close() {
-	r.Channel.Close()
-	r.Conn.Close()
+	if r.Channel != nil {
+		r.Channel.Close()
+	}
+	if r.Conn != nil {
+		r.Conn.Close()
+	}
+}
+
+func (r *RabbitMQ) initQueue() error {
+	_, err := r.Channel.QueueDeclare(
+		AudioTasksQueue,
+		true,  // durable
+		false, // autoDelete
+		false, // exclusive
+		false, // noWait
+		nil,   // args
+	)
+	return err
 }
