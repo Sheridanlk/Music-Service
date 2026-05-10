@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"io"
 	"mime"
-	"path/filepath"
-	"strings"
 
+	"github.com/Sheridanlk/Music-Service/internal/lib/media"
 	"github.com/Sheridanlk/Music-Service/internal/storage"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -71,25 +70,7 @@ func (s *MinioStorage) GetObject(ctx context.Context, bucketName, objectName str
 		return nil, "", 0, fmt.Errorf("%s: can't get object stats: %w", op, err)
 	}
 
-	ct := contentTypeByExt(objectName)
+	ct := media.DetectContentType(objectName)
 
 	return obj, ct, st.Size, nil
-}
-
-func contentTypeByExt(name string) string {
-	ext := strings.ToLower(filepath.Ext(name))
-	if ext == "" {
-		return "application/octet-stream"
-	}
-	if ct := mime.TypeByExtension(ext); ct != "" {
-		return ct
-	}
-	switch ext {
-	case ".m3u8":
-		return "application/vnd.apple.mpegurl"
-	case ".aac":
-		return "audio/aac"
-	default:
-		return "application/octet-stream"
-	}
 }
