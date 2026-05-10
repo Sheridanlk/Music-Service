@@ -9,34 +9,41 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/Sheridanlk/Music-Service/internal/lib/ffmpeg"
+	"github.com/Sheridanlk/Music-Service/internal/lib/media"
 )
 
 type UploadService struct {
 	log *slog.Logger
 
-	trackSaver TrackSaver
-	mediaSaver MediaSaver
+	trackSaver   TrackProvider
+	mediaSaver   MediaSaver
+	taskProducer TaskProducer
 
 	originalBucket string
 	hlsBucket      string
 }
 
-type TrackSaver interface {
+type TrackProvider interface {
 	SaveTrack(ctx context.Context, title, originBucket string) (int64, error)
 	SetOrginKey(ctx context.Context, id int64, originKey string) error
-	SetHLS(ctx context.Context, id int64, hlsBucket string, hlsPrefix string) error
+	SetStatusPending(ctx context.Context, id int64) error
+	SetStatusError(ctx context.Context, id int64) error
 }
 
 type MediaSaver interface {
 	PutObject(ctx context.Context, bucketName, objectName string, r io.Reader, size int64, contentType string) error
 }
 
-func New(log *slog.Logger, trackSaver TrackSaver, mediaSaver MediaSaver, originalBucket, hlsBucket string) *UploadService {
+type TaskProducer interface {
+	SendTrackTask(ctx context.Context, trackId string) error
+}
+
+func New(log *slog.Logger, trackProvider TrackProvider, mediaSaver MediaSaver, taskProducer TaskProducer, originalBucket, hlsBucket string) *UploadService {
 	return &UploadService{
 		log:            log,
-		trackSaver:     trackSaver,
+		trackSaver:     trackProvider,
 		mediaSaver:     mediaSaver,
+		taskProducer:   taskProducer,
 		originalBucket: originalBucket,
 		hlsBucket:      hlsBucket,
 	}
@@ -60,12 +67,18 @@ func (s *UploadService) UploadTrack(ctx context.Context, title string, filename 
 		ext = ".bin"
 	}
 
-	log.Info("uloading track")
+	log.Info("starting track upload")
 
 	id, err := s.trackSaver.SaveTrack(ctx, title, s.originalBucket)
 	if err != nil {
 		return 0, fmt.Errorf("%s: failed to save track: %w", op, err)
 	}
+
+	defer func() {
+		if err != nil {
+			_ = s.trackSaver.SetStatusError(ctx, id) != nil
+		}
+	}()
 
 	originKey := fmt.Sprintf("tracks/%d/source/original%s", id, ext)
 	if err := s.trackSaver.SetOrginKey(ctx, id, originKey); err != nil {
@@ -79,109 +92,34 @@ func (s *UploadService) UploadTrack(ctx context.Context, title string, filename 
 	defer os.RemoveAll(tmpDir)
 
 	originalLocal := filepath.Join(tmpDir, "original"+ext)
-	if err := writeToFile(originalLocal, reader); err != nil {
+	if err := media.WriteToFile(originalLocal, reader); err != nil {
 		return 0, fmt.Errorf("%s: failed to copy original file: %w", op, err)
 	}
 
-	if err := putFile(ctx, s.mediaSaver, s.originalBucket, originKey, originalLocal, detectContentType(ext)); err != nil {
+	file, size, err := media.OpenFile(originalLocal)
+	if err != nil {
+		return 0, fmt.Errorf("%s: failed to open original file: %w", op, err)
+	}
+	defer file.Close()
+
+	ct := media.DetectContentType(ext)
+
+	if err := s.mediaSaver.PutObject(ctx, s.originalBucket, originKey, file, size, ct); err != nil {
 		return 0, fmt.Errorf("%s: failed to upload original file: %w", op, err)
 	}
 
 	log.Info("original file uploaded successfully")
-	log.Info("starting HLS conversion")
 
-	hlsLocal := filepath.Join(tmpDir, "hls")
-	if err := os.Mkdir(hlsLocal, 0755); err != nil {
-		return 0, fmt.Errorf("%s: failed to create local hls dir: %w", op, err)
+	if err := s.trackSaver.SetStatusPending(ctx, id); err != nil {
+		return 0, fmt.Errorf("%s: failed to set track status pending: %w", op, err)
 	}
 
-	if err := ffmpeg.ToHLS(ctx, originalLocal, hlsLocal, 4); err != nil {
-		return 0, fmt.Errorf("%s: failed to convert to hls: %w", op, err)
+	log.Info("sending track processing task")
+	if err := s.taskProducer.SendTrackTask(ctx, fmt.Sprintf("%d", id)); err != nil {
+		return 0, fmt.Errorf("%s: failed to send task: %w", op, err)
 	}
 
-	log.Info("HLS conversion completed successfully")
-	log.Info("uploading HLS files")
-
-	hlsPrefix := fmt.Sprintf("tracks/%d/hls/aac_128/", id)
-	if err := putDir(ctx, s.mediaSaver, s.hlsBucket, hlsPrefix, hlsLocal); err != nil {
-		return 0, fmt.Errorf("%s: failed to upload hls files: %w", op, err)
-
-	}
-
-	if err := s.trackSaver.SetHLS(ctx, id, s.hlsBucket, hlsPrefix); err != nil {
-		return 0, fmt.Errorf("%s: failed to save hls info: %w", op, err)
-	}
-
-	log.Info("HLS files uploaded successfully")
-	log.Info("the track has been loaded")
+	log.Info("track processing task sent successfully")
 
 	return id, nil
-}
-
-func writeToFile(path string, reader io.Reader) error {
-	file, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	_, err = io.Copy(file, reader)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func putFile(ctx context.Context, ms MediaSaver, bucketName, objectName, filePath, ct string) error {
-	f, err := os.Open(filePath)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	stat, err := f.Stat()
-	if err != nil {
-		return err
-	}
-
-	return ms.PutObject(ctx, bucketName, objectName, f, stat.Size(), ct)
-}
-
-func putDir(ctx context.Context, ms MediaSaver, bucketName, prefix, dirPath string) error {
-	enttries, err := os.ReadDir(dirPath)
-	if err != nil {
-		return err
-	}
-
-	for _, entry := range enttries {
-		if entry.IsDir() {
-			continue
-		}
-		name := entry.Name()
-		local := filepath.Join(dirPath, name)
-		objectName := prefix + name
-		ct := detectContentType(filepath.Ext(name))
-
-		if err := putFile(ctx, ms, bucketName, objectName, local, ct); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func detectContentType(ext string) string {
-	ext = strings.ToLower(ext)
-	switch ext {
-	case ".m3u8":
-		return "application/vnd.apple.mpegurl"
-	case ".aac":
-		return "audio/aac"
-	case ".mp3":
-		return "audio/mpeg"
-	case ".flac":
-		return "audio/flac"
-	default:
-		return "application/octet-stream"
-	}
 }
