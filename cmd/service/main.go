@@ -17,7 +17,7 @@ func main() {
 
 	log.Info("starting music service", slog.String("env", cfg.Env))
 
-	application := app.New(log, cfg.PostgreSQL, cfg.HTTPServer, cfg.MinIOClient, cfg.MinioStorage)
+	application := app.New(log, cfg.PostgreSQL, cfg.HTTPServer, cfg.MinIOClient, cfg.MinioStorage, cfg.RabbitMQ)
 
 	go application.Server.Start()
 

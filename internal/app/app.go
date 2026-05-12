@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/Sheridanlk/Music-Service/internal/app/server"
+	"github.com/Sheridanlk/Music-Service/internal/broker"
 	"github.com/Sheridanlk/Music-Service/internal/config"
 	"github.com/Sheridanlk/Music-Service/internal/http/router/chi"
 	"github.com/Sheridanlk/Music-Service/internal/services/tracks/list"
@@ -19,7 +20,14 @@ type App struct {
 	Server  *server.App
 }
 
-func New(log *slog.Logger, storageCfg config.PostgreSQL, serverCfg config.HTTPServer, minioClientCfg config.MinIOClient, minioStorageCfg config.MinioStorage) *App {
+func New(
+	log *slog.Logger,
+	storageCfg config.PostgreSQL,
+	serverCfg config.HTTPServer,
+	minioClientCfg config.MinIOClient,
+	minioStorageCfg config.MinioStorage,
+	rabbitCfg config.RabbitMQ,
+) *App {
 	storage, err := postgresql.New(storageCfg.Host, storageCfg.UserName, storageCfg.Password, storageCfg.DBName, storageCfg.Port)
 	if err != nil {
 		log.Error("failed to init storage", slog.String("error", err.Error()))
@@ -32,7 +40,14 @@ func New(log *slog.Logger, storageCfg config.PostgreSQL, serverCfg config.HTTPSe
 		os.Exit(1)
 	}
 
-	trackUploaderService := upload.New(log, storage, minioStorage, minioStorageCfg.OriginalBucket, minioStorageCfg.HLSBucket)
+	taskBroker, err := broker.New(rabbitCfg.UserName, rabbitCfg.Password, rabbitCfg.Host, rabbitCfg.Port)
+	if err != nil {
+		log.Error("failed to init rabbitmq producer", slog.String("error", err.Error()))
+		os.Exit(1)
+		// TODO: retries
+	}
+
+	trackUploaderService := upload.New(log, storage, minioStorage, taskBroker, minioStorageCfg.OriginalBucket)
 	trackStreamerService := stream.New(log, storage, minioStorage)
 	trackListerService := list.New(log, storage)
 

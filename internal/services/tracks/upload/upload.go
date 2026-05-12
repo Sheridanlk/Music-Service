@@ -20,7 +20,6 @@ type UploadService struct {
 	taskProducer TaskProducer
 
 	originalBucket string
-	hlsBucket      string
 }
 
 type TrackProvider interface {
@@ -38,14 +37,13 @@ type TaskProducer interface {
 	SendTrackTask(ctx context.Context, trackId string) error
 }
 
-func New(log *slog.Logger, trackProvider TrackProvider, mediaSaver MediaSaver, taskProducer TaskProducer, originalBucket, hlsBucket string) *UploadService {
+func New(log *slog.Logger, trackProvider TrackProvider, mediaSaver MediaSaver, taskProducer TaskProducer, originalBucket string) *UploadService {
 	return &UploadService{
 		log:            log,
 		trackSaver:     trackProvider,
 		mediaSaver:     mediaSaver,
 		taskProducer:   taskProducer,
 		originalBucket: originalBucket,
-		hlsBucket:      hlsBucket,
 	}
 }
 
@@ -80,7 +78,7 @@ func (s *UploadService) UploadTrack(ctx context.Context, title string, filename 
 		}
 	}()
 
-	originKey := fmt.Sprintf("tracks/%d/source/original%s", id, ext)
+	originKey := media.GenerateTrackOriginKey(id, ext)
 	if err := s.trackSaver.SetOrginKey(ctx, id, originKey); err != nil {
 		return 0, fmt.Errorf("%s: failed to save origin key: %w", op, err)
 	}
