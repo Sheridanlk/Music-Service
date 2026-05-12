@@ -26,6 +26,5 @@ minio_storage:
 rabbitmq:
   host: "localhost"
   port: 5672
-  user_name: "guest"
-  password: "" #env
-  queue_name: "media_processing_tasks"
+  user_name: "user"
+  password: "" # env
