@@ -88,6 +88,23 @@ func (s *Storage) GetHLS(ctx context.Context, id int64) (string, string, error) 
 	return *bucket, *prefix, nil
 }
 
+func (s *Storage) GetOriginKey(ctx context.Context, id int64) (string, string, error) {
+	const op = "storage.postgresql.GetOriginKey"
+
+	var bucket, key *string
+
+	err := s.pool.QueryRow(
+		ctx,
+		`SELECT origin_bucket, origin_key FROM tracks WHERE id = $1`,
+		id,
+	).Scan(&bucket, &key)
+	if err != nil {
+		return "", "", fmt.Errorf("%s: can't get track origin information: %w", op, err)
+	}
+
+	return *bucket, *key, nil
+}
+
 func (s *Storage) ListTracks(ctx context.Context, count int, offset int) ([]models.TrackListItem, error) {
 	const op = "storage.postgresql.ListTracks"
 
@@ -137,7 +154,7 @@ func (s *Storage) SetStatusProcessing(ctx context.Context, id int64) error {
 
 	res, err := s.pool.Exec(
 		ctx,
-		`UPDATE traks SET status = 'processing' WHERE id = $1 AND status = 'pending'`,
+		`UPDATE tracks SET status = 'processing' WHERE id = $1 AND status = 'pending'`,
 		id,
 	)
 	if err != nil {
