@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/Sheridanlk/Music-Service/internal/domain/models"
+	"github.com/Sheridanlk/Music-Service/internal/storage"
 )
 
 func (s *Storage) SaveTrack(ctx context.Context, title, originBucket string) (int64, error) {
@@ -136,14 +137,14 @@ func (s *Storage) SetStatusPending(ctx context.Context, id int64) error {
 
 	res, err := s.pool.Exec(
 		ctx,
-		`UPDATE tracks SET status = 'pending' WHERE id = $1 AND status = 'uploading'`,
-		id,
+		`UPDATE tracks SET status = $1 WHERE id = $2 AND status = 'uploading'`,
+		storage.StatusPending, id,
 	)
 	if err != nil {
-		if rowsAffected := res.RowsAffected(); rowsAffected == 0 {
-			return fmt.Errorf("%s: track not found or not in uploading status", op)
-		}
 		return fmt.Errorf("%s: can't set pending status: %w", op, err)
+	}
+	if rowsAffected := res.RowsAffected(); rowsAffected == 0 {
+		return fmt.Errorf("%s: track not found or not in uploading status", op)
 	}
 
 	return nil
@@ -154,14 +155,14 @@ func (s *Storage) SetStatusProcessing(ctx context.Context, id int64) error {
 
 	res, err := s.pool.Exec(
 		ctx,
-		`UPDATE tracks SET status = 'processing' WHERE id = $1 AND status = 'pending'`,
-		id,
+		`UPDATE tracks SET status = $1 WHERE id = $2 AND status = 'pending'`,
+		storage.StatusProcessing, id,
 	)
 	if err != nil {
-		if rowsAffected := res.RowsAffected(); rowsAffected == 0 {
-			return fmt.Errorf("%s: track not found or not in pending status", op)
-		}
 		return fmt.Errorf("%s: can't set processing status: %w", op, err)
+	}
+	if rowsAffected := res.RowsAffected(); rowsAffected == 0 {
+		return fmt.Errorf("%s: track not found or not in pending status", op)
 	}
 
 	return nil
@@ -172,14 +173,14 @@ func (s *Storage) SetStatusReady(ctx context.Context, id int64) error {
 
 	res, err := s.pool.Exec(
 		ctx,
-		`UPDATE tracks SET status = 'ready' WHERE id = $1 AND status = 'processing'`,
-		id,
+		`UPDATE tracks SET status = $1 WHERE id = $2 AND status = 'processing'`,
+		storage.StatusReady, id,
 	)
 	if err != nil {
-		if rowsAffected := res.RowsAffected(); rowsAffected == 0 {
-			return fmt.Errorf("%s: track not found or not in processing status", op)
-		}
 		return fmt.Errorf("%s: can't set ready status: %w", op, err)
+	}
+	if rowsAffected := res.RowsAffected(); rowsAffected == 0 {
+		return fmt.Errorf("%s: track not found or not in processing status", op)
 	}
 
 	return nil
@@ -190,12 +191,44 @@ func (s *Storage) SetStatusError(ctx context.Context, id int64) error {
 
 	_, err := s.pool.Exec(
 		ctx,
-		`UPDATE tracks SET status = 'error' WHERE id = $1`,
-		id,
+		`UPDATE tracks SET status = $1 WHERE id = $2`,
+		storage.StatusError, id,
 	)
 
 	if err != nil {
 		return fmt.Errorf("%s: can't set error status: %w", op, err)
+	}
+
+	return nil
+}
+
+func (s *Storage) DeleteTrack(ctx context.Context, id int64) error {
+	const op = "storage.postgresql.DeleteTrack"
+
+	_, err := s.pool.Exec(
+		ctx,
+		`DELETE FROM tracks WHERE id = $1`,
+		id,
+	)
+
+	if err != nil {
+		return fmt.Errorf("%s: can't delete track: %w", op, err)
+	}
+
+	return nil
+}
+
+func (s *Storage) EditTrack(ctx context.Context, id int64, title string) error {
+	const op = "storage.postgresql.EditTrack"
+
+	_, err := s.pool.Exec(
+		ctx,
+		`UPDATE tracks SET title = $1 WHERE id = $2`,
+		title, id,
+	)
+
+	if err != nil {
+		return fmt.Errorf("%s: can't edit track: %w", op, err)
 	}
 
 	return nil
