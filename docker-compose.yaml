@@ -17,6 +17,7 @@ services:
       timeout: 3s
       retries: 20
 
+
   minio_init:
     image: minio/mc:latest
     container_name: music_minio_init
@@ -35,6 +36,7 @@ services:
       mc mb -p local/$$HLS_BUCKET || true &&
       echo 'Buckets ensured';
       "
+
   postgres:
     image: postgres:15-alpine
     container_name: music_postgres
@@ -42,32 +44,34 @@ services:
       POSTGRES_HOST: localhost
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${PGSQL_PASSWORD:-postgres}
-      POSTGRES_DB: music
+      POSTGRES_DB: music_service
       POSTGRES_PORT: 5432
     ports:
       - "5432:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "postgres"]
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "music_service"]
       interval: 5s
       timeout: 3s
       retries: 10
+  
   postgres_init:
     image: migrate/migrate:4
     depends_on:
       postgres:
         condition: service_healthy
     environment:
-      PGSQL_PASSWORD: ${PGSQL_PASSWORD:-postgres}
+      PGSQL_PASSWORD: ${PGSQL_PASSWORD}
     volumes:
       - ./migrations:/migrations:ro
     command: [
       "-path", "/migrations",
-      "-database", "postgres://postgres:${PGSQL_PASSWORD}@postgres:5432/music?sslmode=disable",
+      "-database", "postgres://postgres:${PGSQL_PASSWORD}@postgres:5432/music_service?sslmode=disable",
       "up"
     ]
     restart: "no"
+  
   rabbitmq:
     image: rabbitmq:3.12-management-alpine
     container_name: music_rabbitmq
@@ -84,6 +88,55 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  music_service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        CMD_PATH: cmd/service 
+    ports:
+      - "8080:8080" 
+    environment:
+      CONFIG_PATH: /config/local.yaml 
+      PGSQL_PASSWORD: ${PGSQL_PASSWORD}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      ORIGINAL_BUCKET: ${ORIGINAL_BUCKET}
+      HLS_BUCKET: ${HLS_BUCKET}
+      MINIO_USER: ${MINIO_ROOT_USER}
+      MINIO_SECRET: ${MINIO_SECRET_ACCESS_KEY}
+    volumes:
+     - ./config:/config/:ro
+    depends_on:
+      rabbitmq:
+        condition: service_started 
+      minio_init:
+        condition: service_completed_successfully
+      postgres_init:
+        condition: service_completed_successfully
+
+  music_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        CMD_PATH: cmd/worker 
+    environment:
+      CONFIG_PATH: /config/local.yaml 
+      PGSQL_PASSWORD: ${PGSQL_PASSWORD}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      ORIGINAL_BUCKET: ${ORIGINAL_BUCKET}
+      HLS_BUCKET: ${HLS_BUCKET}
+      MINIO_USER: ${MINIO_ROOT_USER}
+      MINIO_SECRET: ${MINIO_SECRET_ACCESS_KEY}
+    volumes:
+     - ./config:/config/:ro
+    depends_on:
+      postgres_init:
+        condition: service_completed_successfully 
+      rabbitmq:
+        condition: service_started 
+
 
 
 volumes:

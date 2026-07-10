@@ -7,14 +7,14 @@ http_server:
   idle_timeout: 60s
 
 postgresql:
-  host: "localhost"
+  host: "postgres"
   port: 5432
   db_name: "music_service"
   user_name: "postgres"
   password: "" # env
 
 minio_client:
-  endpoint: "localhost:9000"
+  endpoint: "minio:9000"
   access_key_id: "musicadmin"
   secret_access_key: "" #env
   use_ssl: false
@@ -24,7 +24,8 @@ minio_storage:
   hls_bucket: "media-hls"
 
 rabbitmq:
-  host: "localhost"
+  host: "rabbitmq"
   port: 5672
   user_name: "user"
   password: "" # env
+
