@@ -19,4 +19,6 @@ WORKDIR /app
 
 COPY --from=build /app/app .
 
+COPY --from=build /app/migrations ./migrations
+
 ENTRYPOINT ["/app/app"]
