@@ -106,7 +106,7 @@ func (s *Storage) GetOriginKey(ctx context.Context, id int64) (string, string, e
 	return *bucket, *key, nil
 }
 
-func (s *Storage) ListTracks(ctx context.Context, count int, offset int) ([]models.TrackListItem, error) {
+func (s *Storage) ListAllTracks(ctx context.Context, count int, offset int) ([]models.TrackListItem, error) {
 	const op = "storage.postgresql.ListTracks"
 
 	tracks := make([]models.TrackListItem, 0, count)
@@ -114,6 +114,32 @@ func (s *Storage) ListTracks(ctx context.Context, count int, offset int) ([]mode
 	rows, err := s.pool.Query(
 		ctx,
 		`SELECT id, title, created_at FROM tracks ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
+		count, offset,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("%s: can't get tracks: %w", op, err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var track models.TrackListItem
+		if err := rows.Scan(&track.ID, &track.Title, &track.CreatedAt); err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		tracks = append(tracks, track)
+	}
+
+	return tracks, nil
+}
+
+func (s *Storage) ListReadyTracks(ctx context.Context, count int, offset int) ([]models.TrackListItem, error) {
+	const op = "storage.postgresql.ListTracks"
+
+	tracks := make([]models.TrackListItem, 0, count)
+
+	rows, err := s.pool.Query(
+		ctx,
+		`SELECT id, title, created_at FROM tracks WHERE status = 'ready' ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
 		count, offset,
 	)
 	if err != nil {
