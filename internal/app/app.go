@@ -8,6 +8,7 @@ import (
 	"github.com/Sheridanlk/Music-Service/internal/broker"
 	"github.com/Sheridanlk/Music-Service/internal/config"
 	"github.com/Sheridanlk/Music-Service/internal/http/router/chi"
+	"github.com/Sheridanlk/Music-Service/internal/services/tracks/delete"
 	"github.com/Sheridanlk/Music-Service/internal/services/tracks/list"
 	"github.com/Sheridanlk/Music-Service/internal/services/tracks/stream"
 	"github.com/Sheridanlk/Music-Service/internal/services/tracks/upload"
@@ -50,10 +51,12 @@ func New(
 	trackUploaderService := upload.New(log, storage, minioStorage, taskBroker, minioStorageCfg.OriginalBucket)
 	trackStreamerService := stream.New(log, storage, minioStorage)
 	trackListerService := list.New(log, storage)
+	trackDeleterService := delete.New(log, storage, minioStorage, minioStorageCfg.OriginalBucket, minioStorageCfg.HLSBucket)
 
-	router := chi.Setup(log, trackUploaderService, trackStreamerService, trackListerService)
+	router := chi.Setup(log, trackUploaderService, trackStreamerService, trackListerService, trackDeleterService)
 
 	server := server.New(log, router, serverCfg.Host, serverCfg.Port, serverCfg.Timeout, serverCfg.Timeout, serverCfg.IdleTimeout)
+
 	return &App{
 		Storage: storage,
 		Server:  server,
