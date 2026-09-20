@@ -231,7 +231,7 @@ func (s *Storage) SetStatusError(ctx context.Context, id int64) error {
 func (s *Storage) DeleteTrack(ctx context.Context, id int64) error {
 	const op = "storage.postgresql.DeleteTrack"
 
-	_, err := s.pool.Exec(
+	tag, err := s.pool.Exec(
 		ctx,
 		`DELETE FROM tracks WHERE id = $1`,
 		id,
@@ -239,6 +239,10 @@ func (s *Storage) DeleteTrack(ctx context.Context, id int64) error {
 
 	if err != nil {
 		return fmt.Errorf("%s: can't delete track: %w", op, err)
+	}
+
+	if tag.RowsAffected() == 0 {
+		return storage.ErrTrackNotFound
 	}
 
 	return nil

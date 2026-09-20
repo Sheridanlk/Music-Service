@@ -74,3 +74,22 @@ func (s *MinioStorage) GetObject(ctx context.Context, bucketName, objectName str
 
 	return obj, ct, st.Size, nil
 }
+
+func (s *MinioStorage) DeleteObject(ctx context.Context, bucketName, objectName string) error {
+	const op = "storage.minio.Delete"
+
+	objectsCh := s.minioclient.ListObjects(ctx, bucketName, minio.ListObjectsOptions{
+		Prefix:    objectName,
+		Recursive: true,
+	})
+
+	errorCh := s.minioclient.RemoveObjects(ctx, bucketName, objectsCh, minio.RemoveObjectsOptions{})
+
+	for e := range errorCh {
+		if e.Err != nil {
+			return fmt.Errorf("%s: can't delete object: %w", op, e.Err)
+		}
+	}
+
+	return nil
+}
