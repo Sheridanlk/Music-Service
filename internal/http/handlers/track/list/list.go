@@ -35,7 +35,7 @@ type TrackListResponse struct {
 }
 
 type Lister interface {
-	GetTracksList(ctx context.Context, count int, offset int) ([]models.TrackListItem, error)
+	GetTracksList(ctx context.Context, status string, count int, offset int) ([]models.TrackListItem, error)
 }
 
 func New(log *slog.Logger, lister Lister) http.HandlerFunc {
@@ -44,6 +44,7 @@ func New(log *slog.Logger, lister Lister) http.HandlerFunc {
 
 		log := log.With(slog.String("op", op))
 
+		status := strings.TrimSpace(r.URL.Query().Get("status"))
 		limitRaw := strings.TrimSpace(r.URL.Query().Get("limit"))
 		offsetRaw := strings.TrimSpace(r.URL.Query().Get("offset"))
 
@@ -87,7 +88,7 @@ func New(log *slog.Logger, lister Lister) http.HandlerFunc {
 			}
 		}
 
-		list, err := lister.GetTracksList(r.Context(), limit, offset)
+		list, err := lister.GetTracksList(r.Context(), status, limit, offset)
 		if err != nil {
 			log.Error("failed to get tracks list", logger.Err(err))
 

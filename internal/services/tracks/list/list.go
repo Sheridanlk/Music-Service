@@ -9,23 +9,23 @@ import (
 )
 
 type TrackLister interface {
-	ListReadyTracks(ctx context.Context, count int, offset int) ([]models.TrackListItem, error)
+	ListTracks(ctx context.Context, status string, count int, offset int) ([]models.TrackListItem, error)
 }
 
 type ListService struct {
 	log *slog.Logger
 
-	trackLister TrackLister
+	readyTrackLister TrackLister
 }
 
-func New(log *slog.Logger, trackLister TrackLister) *ListService {
+func New(log *slog.Logger, TrackLister TrackLister) *ListService {
 	return &ListService{
-		log:         log,
-		trackLister: trackLister,
+		log:              log,
+		readyTrackLister: TrackLister,
 	}
 }
 
-func (s *ListService) GetTracksList(ctx context.Context, limit int, offset int) ([]models.TrackListItem, error) {
+func (s *ListService) GetTracksList(ctx context.Context, status string, limit int, offset int) ([]models.TrackListItem, error) {
 	const op = "list.GetTracksList"
 
 	log := s.log.With(
@@ -34,7 +34,7 @@ func (s *ListService) GetTracksList(ctx context.Context, limit int, offset int) 
 
 	log.Info("getting tracks list")
 
-	tracks, err := s.trackLister.ListReadyTracks(ctx, limit, offset)
+	tracks, err := s.readyTrackLister.ListTracks(ctx, status, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("%s: failed to get tracks list: %w", op, err)
 	}

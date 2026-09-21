@@ -741,7 +741,7 @@
       hasMore = true;
     }
 
-    const url = `${API_BASE}/tracks?limit=${PAGE_SIZE}&offset=${offset}`;
+    const url = `${API_BASE}/tracks?limit=${PAGE_SIZE}&offset=${offset}&status="ready"`;
 
     let data;
     try {
