@@ -12,6 +12,7 @@ import (
 	"github.com/Sheridanlk/Music-Service/internal/domain/models"
 	"github.com/Sheridanlk/Music-Service/internal/lib/response"
 	"github.com/Sheridanlk/Music-Service/internal/logger"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
 )
 
@@ -42,7 +43,10 @@ func New(log *slog.Logger, lister Lister) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.track.list.New"
 
-		log := log.With(slog.String("op", op))
+		log = log.With(
+			slog.String("op", op),
+			slog.String("req_id", middleware.GetReqID(r.Context())),
+		)
 
 		status := strings.TrimSpace(r.URL.Query().Get("status"))
 		limitRaw := strings.TrimSpace(r.URL.Query().Get("limit"))

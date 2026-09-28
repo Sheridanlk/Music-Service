@@ -12,6 +12,7 @@ import (
 
 	"github.com/Sheridanlk/Music-Service/internal/lib/response"
 	"github.com/Sheridanlk/Music-Service/internal/logger"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
 )
@@ -37,8 +38,9 @@ func New(log *slog.Logger, uploader TrackUploader) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.track.upload.New"
 
-		log := log.With(
+		log = log.With(
 			slog.String("op", op),
+			slog.String("req_id", middleware.GetReqID(r.Context())),
 		)
 
 		r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)

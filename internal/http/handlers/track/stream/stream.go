@@ -13,6 +13,7 @@ import (
 	"github.com/Sheridanlk/Music-Service/internal/logger"
 	"github.com/Sheridanlk/Music-Service/internal/storage"
 	chigo "github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
 )
 
@@ -24,8 +25,9 @@ func New(log *slog.Logger, streamer Streamer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.track.stream.New"
 
-		log := log.With(
+		log = log.With(
 			slog.String("op", op),
+			slog.String("req_id", middleware.GetReqID(r.Context())),
 		)
 
 		idStr := chigo.URLParam(r, "id")
