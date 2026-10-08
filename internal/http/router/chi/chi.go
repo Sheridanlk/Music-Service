@@ -8,13 +8,14 @@ import (
 	"github.com/Sheridanlk/Music-Service/internal/http/handlers/track/delete"
 	"github.com/Sheridanlk/Music-Service/internal/http/handlers/track/list"
 	"github.com/Sheridanlk/Music-Service/internal/http/handlers/track/stream"
+	"github.com/Sheridanlk/Music-Service/internal/http/handlers/track/update"
 	"github.com/Sheridanlk/Music-Service/internal/http/handlers/track/upload"
 	"github.com/Sheridanlk/Music-Service/internal/http/middleware/logger"
 	chigo "github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-func Setup(log *slog.Logger, trackUploader upload.TrackUploader, streamer stream.Streamer, lister list.Lister, deleter delete.Deleter) http.Handler {
+func Setup(log *slog.Logger, trackUploader upload.TrackUploader, streamer stream.Streamer, lister list.Lister, deleter delete.Deleter, updater update.Updater) http.Handler {
 	router := chigo.NewRouter()
 
 	router.Use(middleware.RequestID)
@@ -26,6 +27,7 @@ func Setup(log *slog.Logger, trackUploader upload.TrackUploader, streamer stream
 	router.Post("/tracks", upload.New(log, trackUploader))
 	router.Get("/tracks", list.New(log, lister))
 	router.Delete("/tracks/{id}", delete.New(log, deleter))
+	router.Patch("/tracks/{id}", update.New(log, updater))
 
 	router.Get("/stream/{id}/{file}", stream.New(log, streamer))
 

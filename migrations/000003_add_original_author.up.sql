@@ -1,0 +1,1 @@
+ALTER TABLE tracks ADD COLUMN original_author VARCHAR(255);

@@ -17,3 +17,8 @@ type TrackListItem struct {
 	Title     string
 	CreatedAt time.Time
 }
+
+type UpdateTrackParams struct {
+	Title          *string
+	OriginalAuthor *string
+}

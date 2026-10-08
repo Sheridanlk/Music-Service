@@ -222,17 +222,25 @@ func (s *Storage) DeleteTrack(ctx context.Context, id int64) error {
 	return nil
 }
 
-func (s *Storage) EditTrack(ctx context.Context, id int64, title string) error {
+func (s *Storage) EditTrack(ctx context.Context, id int64, updateParams models.UpdateTrackParams) error {
 	const op = "storage.postgresql.EditTrack"
 
-	_, err := s.pool.Exec(
+	tag, err := s.pool.Exec(
 		ctx,
-		`UPDATE tracks SET title = $1 WHERE id = $2`,
-		title, id,
+		`UPDATE tracks 
+		SET 
+			title = COALESCE($1, title),
+			original_author = COALESCE($2, original_author)
+		WHERE id = $3`,
+		updateParams.Title, updateParams.OriginalAuthor, id,
 	)
 
 	if err != nil {
 		return fmt.Errorf("%s: can't edit track: %w", op, err)
+	}
+
+	if tag.RowsAffected() == 0 {
+		return storage.ErrTrackNotFound
 	}
 
 	return nil
