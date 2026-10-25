@@ -51,14 +51,14 @@ func (d *DeleteService) DeleteTrack(ctx context.Context, id int64) error {
 
 	log.Info("metadata deleted")
 
-	err = d.mediaDeleter.DeleteObject(ctx, d.hlsBucket, fmt.Sprintf("tracks/%d", id))
+	err = d.mediaDeleter.DeleteObject(ctx, d.hlsBucket, fmt.Sprintf("tracks/%d/", id))
 	if err != nil {
 		log.Error("failed to delete HLS media", slog.Any("error", err))
 	}
 
 	log.Info("HLS media deleted")
 
-	err = d.mediaDeleter.DeleteObject(ctx, d.originalBucket, fmt.Sprintf("tracks/%d", id))
+	err = d.mediaDeleter.DeleteObject(ctx, d.originalBucket, fmt.Sprintf("tracks/%d/", id))
 	if err != nil {
 		log.Error("failed to delete HLS media", slog.Any("error", err))
 
