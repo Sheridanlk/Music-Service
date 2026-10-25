@@ -43,7 +43,7 @@ func New(log *slog.Logger, lister Lister) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.track.list.New"
 
-		log = log.With(
+		log := log.With(
 			slog.String("op", op),
 			slog.String("req_id", middleware.GetReqID(r.Context())),
 		)
